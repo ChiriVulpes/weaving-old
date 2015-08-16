@@ -1,0 +1,11 @@
+{
+    "name": "weaving",
+    "version": "0.0.1",
+    "description": "Exposes a sexy string-building api.",
+    "license": "MIT",
+    "author": {
+        "name": "Mackenzie McClane"
+    },
+    "main": "weaving.js",
+    "dependencies": {}
+}
