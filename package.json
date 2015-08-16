@@ -1,11 +1,15 @@
 {
     "name": "weaving",
     "version": "0.0.1",
-    "description": "Exposes a sexy string-building api.",
+    "description": "Exposes a sexy string-formatting/building api.",
     "license": "MIT",
     "author": {
         "name": "Mackenzie McClane"
     },
     "main": "weaving.js",
-    "dependencies": {}
+    "dependencies": {},
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/Aarilight/weaving"
+    }
 }
