@@ -58,3 +58,21 @@ As you can probably tell, `{!}` retrieves the current index, while `{&}` retriev
 You don't have to loop over the argument list, however. You can also loop over arrays in your arguments.
 
 	"List of {0}: {1*, }".format("users", ["Joe", "Bob", "Stevie"]); // -> "List of users: Joe, Bob, Stevie"
+
+#### Utility functions
+
+Weaving also offers a couple utility functions.
+
+- `.padLeft(length, with)`:
+	- Pads the left side of a string so that it is at least the given length, with the provided substring.
+- `.padRight(length, with)`:
+	- Same thing, but instead pads to the right.
+
+## Installation and use
+
+You can get the package with `npm install weaving` or by adding it to your `package.json` and running `npm install`
+Alternatively, visit the [page on npm](https://www.npmjs.com/package/weaving)!
+
+To use it, simply do `require('weaving')`. It'll return an object with these functions, along with `.proto()`
+Calling `.proto()` will apply weaving to your String prototype, replacing any existing functions of the same name, but it allows you to call the methods like I did in this tutorial. =) <br>
+Alternatively you can just call the functions in the object weaving returns.
