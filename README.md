@@ -79,20 +79,20 @@ Weaving also offers a couple utility functions.
 	- Tests if a string ends with the provided substring. Utilises indexOf in order to be more efficient.
 - `.proto(replace[, which])`:
 	- Adds the functions to the String prototype. If `replace` is true, then it replaces any existing functions of the same name. `which` can be an object which represents the functions you'd like to add.
-	- Example:
-
-		var protos = {
-		    weave: ["&", "format"],
-		    weaveStrict: ["&", "formatStrict"],
-		    padLeft: "&",
-		    padRight: "&",
-		    capitalize: ["&", "capitalise"],
-		    startsWith: "&",
-		    endsWith: "&",
-		    tailsMatch: ["&", "startsAndEndsWith"]
-		};
-		
 	- The keys in this object are the names of the functions in the weaving object, and they must be set to either a string or an array of strings, with which will be set on the String.prototype to the function. The `&` symbol is a shortcut to use the key.
+
+Here's an example of the `which` object:
+
+	var protos = {
+	    weave: ["&", "format"],
+	    weaveStrict: ["&", "formatStrict"],
+	    padLeft: "&",
+	    padRight: "&",
+	    capitalize: ["&", "capitalise"],
+	    startsWith: "&",
+	    endsWith: "&",
+	    tailsMatch: ["&", "startsAndEndsWith"]
+	};
 
 ## Installation and use
 
