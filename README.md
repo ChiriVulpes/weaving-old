@@ -63,18 +63,42 @@ You don't have to loop over the argument list, however. You can also loop over a
 
 Weaving also offers a couple utility functions.
 
+- `.weave(...args)`:
+	- Weaves a string. See above.
+- `.weaveStrict(...args)`:
+	- Weaves a string. Throws an error if the formatting is incorrect or an argument that does not exist is requested.
 - `.padLeft(length, with)`:
 	- Pads the left side of a string so that it is at least the given length, with the provided substring.
 - `.padRight(length, with)`:
 	- Same thing, but instead pads to the right.
+- `.capitalize()`:
+	- Capitalises the first letter of a string.
+- `.startsWith(substr)`:
+	- Tests if a string starts with the provided substring. Utilises lastIndexOf in order to be more efficient.
+- `.endsWith(substr)`:
+	- Tests if a string ends with the provided substring. Utilises indexOf in order to be more efficient.
+- `.proto(replace[, which])`:
+	- Adds the functions to the String prototype. If `replace` is true, then it replaces any existing functions of the same name. `which` can be an object which represents the functions you'd like to add.
+	- Example:
+
+		var protos = {
+		    weave: ["&", "format"],
+		    weaveStrict: ["&", "formatStrict"],
+		    padLeft: "&",
+		    padRight: "&",
+		    capitalize: ["&", "capitalise"],
+		    startsWith: "&",
+		    endsWith: "&",
+		    tailsMatch: ["&", "startsAndEndsWith"]
+		};
+		
+	- The keys in this object are the names of the functions in the weaving object, and they must be set to either a string or an array of strings, with which will be set on the String.prototype to the function. The `&` symbol is a shortcut to use the key.
 
 ## Installation and use
 
 You can get the package with `npm install weaving` or by adding it to your `package.json` and running `npm install`
 
-To use it, simply do `require('weaving')`. It'll return an object with these functions, along with `.proto()`
-Calling `.proto()` will apply weaving to your String prototype, replacing any existing functions of the same name, but it allows you to call the methods like I did in this tutorial. =) <br>
-Alternatively you can just call the functions in the object weaving returns.
+To use it, simply do `require('weaving')`. It'll return an object with these functions. You can use them straight from that, or you can run `.proto` to apply them to the String prototype.
 
 
 ## Links
