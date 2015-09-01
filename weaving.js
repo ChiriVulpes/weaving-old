@@ -74,6 +74,7 @@ weave.prototype.keys = function (str) {
         }
         if (str[i] == "." && key.length > 0) {
             keys.push(key);
+            key = "";
             continue;
         }
         key += str[i];
@@ -92,6 +93,7 @@ weave.prototype.getValue = function (keys) {
     var val = this.args;
     for (var i = 0; i < keys.length; i++) {
         if (typeof val != "object" || !keys[i] in val) {
+            console.log(val, keys);
             return undefined;
         }
         val = val[keys[i]];
