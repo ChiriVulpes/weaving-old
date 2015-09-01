@@ -3,102 +3,71 @@ var weave = function (str, args, strict) {
     this.str = str;
     this.cursor = -1;
     this.args = args;
-    this.result = [];
+    this.segments = [];
+    this.result = "";
     this.strict = !!strict;
 };
 weave.prototype.weave = function () {
-    console.log("args:", JSON.stringify(this.args), "str:", JSON.stringify(this.str));
-    while (true) {
-        var last = this.cursor;
-        this.cursor = this.getNextNotEscaped("{");
-        if (this.cursor == -1) {
-            this.result.push(this.str.substring(last + 1));
-            break;
-        }
-
-        if (last != this.cursor) this.result.push(this.str.substring(last + 1, this.cursor));
-
-        last = this.cursor;
-        this.cursor++;
-        var keys = this.keys();
-
-        var success = false;
-        if (keys.length > 0) {
-            var val = this.getValue(keys), hasVal = (val !== undefined && val !== null);
-            if (!this.isEscapedAt(this.cursor)) {
-                if (this.getChar() == "}") {
-                    if (hasVal) {
-                        if (typeof val != "string") val = val.toString();
-                        this.result.push(val);
-                        continue;
-                    } else if (this.strict) throw new Error("Argument does not exist by keys " + JSON.stringify(keys.join(".")) + "");
-                } else if (this.getChar() == "?") {
-
-                    if (hasVal) {
-
-                    } else {
-
-                    }
-                }
-            }
-        }
-        this.result.push(this.str.substring(last, this.cursor + 1));
-    }
-    this.result = this.result.join("");
+    this.extract();
+    this.result = this.compile(this.str)
+        .replace(/\.~\[/g, "~{")
+        .replace(/\.~\]/g, "~}")
+        .replace(/(~{2,})\[/g, function (match, escapes) {
+            return escapes.slice(2) + "[";
+        }).replace(/~(.)/g, "$1");
     return this.result;
 };
-weave.prototype.getNextNotEscaped = function (what, offset) {
-    if (typeof offset != "number") offset = this.cursor;
-    while (true) {
-        offset = this.str.indexOf(what, offset);
-        if (offset == -1) return offset;
-        if (!this.isEscapedAt(offset)) return offset;
-    }
+weave.prototype.extract = function () {
+    var str = this.str
+        .replace(/(~*)\[/g, "$1~~[")
+        .replace(/(~*)\]/g, "$1~~]")
+        .replace(/~\{/g, ".~[")
+        .replace(/~\}/g, ".~]");
+    var args = Array.prototype.slice.apply(arguments, [1]);
+    var segments = [];
+    var didSomething;
+    do {
+        didSomething = false;
+        str = str.replace(/(^|[^~])({[^{}]*})/g, function(match, backmatch, capture) {
+            didSomething = true;
+            segments.push(capture);
+            return backmatch + "[!" + (segments.length - 1) + "]";
+        });
+    } while (didSomething);
+    this.str = str;
+    this.segments = segments;
 };
-weave.prototype.nextUnusedClosingBracket = function (offset) {
-    if (typeof offset != "number") offset = this.cursor;
-    var opening = offset, closing = offset, opened = 0;
-    while (true) {
-        closing = getNextNotEscaped("}", closing);
-        if (opening != -1) {
-            opening = getNextNotEscaped("{", opening);
-            if (opening != -1) opened++;
-        }
-        if (opening == -1 || opening > closing) return closing;
-    }
-};
-weave.prototype.isEscapedAt = function (offset) {
-    var i = offset - 1, count = 0;
-    while (i-- > -1 && this.str[i] == "\\") count++;
-    return count % 2 != 0;
-};
-weave.prototype.get = function () {
-    return this.str.substring(this.cursor);
-};
-weave.prototype.getChar = function () {
-    return this.str[this.cursor];
-};
-weave.prototype.consume = function (what) {
-    if (typeof what == "number") this.cursor += what;
-    else if (typeof what == "string") this.cursor += what.length;
-    else if (typeof what == "object") {
-        if (what instanceof RegExp) {
-            var result = this.get().match(what);
-            if (result === null) return false;
-            else {
-                this.cursor += result[0].length;
-                return result;
+weave.prototype.compile = function (str) {
+    if (weaving.tailsMatch(str, "{", "}")) {
+        var keys = this.keys(str.slice(1));
+        var offset = keys.offset + 1;
+        var value = this.getValue(keys.keys);
+        if (str[offset] == "}") return value === undefined ? str : value;
+        else if (str[offset] == "?") {
+            var colonOffset = /(^|[^~])(~~)*:/.exec(str.slice(offset));
+            colonOffset = colonOffset && "index" in colonOffset ? colonOffset.index + colonOffset[0].length - 1 + offset : -1;
+            if (value) {
+                return this.compile(str.slice(offset + 1, colonOffset));
+            } else {
+                return colonOffset == "-1" ? "" : this.compile(str.slice(colonOffset + 1, -1));
             }
+        } else {
+            if (this.strict) throw new Error;
+            else return value === undefined ? str : value;
         }
+    } else {
+        var _this = this;
+        return str.replace(/\[!(\d+)\]/g, function (match, index) {
+            var result = _this.compile(_this.segments[parseInt(index)]);
+            return result;
+        });
     }
-    return true;
 };
-weave.prototype.keys = function () {
-    var str = this.get();
+weave.prototype.keys = function (str) {
     var keys = [];
     var key = "";
     for (var i = 0; i < str.length && !/[?*:}]/.test(str[i]); i++) {
-        if (str[i] == "\\") {
+        if (str[i] == "~") {
             if (i++ > str.length) return false;
             key += this.escapeChar(str[i]);
             continue;
@@ -110,8 +79,7 @@ weave.prototype.keys = function () {
         key += str[i];
     }
     if (key.length > 0) keys.push(key);
-    this.consume(i);
-    return keys.length > 0 ? keys : false;
+    return { keys: keys.length > 0 ? keys : false, offset: i};
 };
 weave.prototype.escapeChar = function ( char ) {
     return char;
@@ -128,31 +96,35 @@ weave.prototype.getValue = function (keys) {
         }
         val = val[keys[i]];
     }
-    return val;
+    return typeof val == "string" ? val.replace(/~/g, "~~").replace(/(~+)\[/g, "$1~~[") : val;
 };
 
-var call = function (what, who, args) {
-    Array.prototype.unshift.apply(args, [who]);
-    return what.apply(null, args);
+var protos = {
+    weave: ["&", "format"],
+    weaveStrict: ["&", "formatStrict"],
+    padLeft: "&",
+    padRight: "&",
+    capitalize: ["&", "capitalise"],
+    startsWith: "&",
+    endsWith: "&",
+    tailsMatch: ["&", "startsAndEndsWith"]
 };
 
 var weaving = module.exports = {
-    proto: function () {
-        String.prototype.format = String.prototype.weave = function () {
-            return call(weaving.weave, this, arguments);
-        };
-        String.prototype.formatStrict = String.prototype.weaveStrict = function () {
-            return call(weaving.weaveStrict, this, arguments);
-        };
-        String.prototype.padLeft = function () {
-            return call(weaving.padLeft, this, arguments);
-        };
-        String.prototype.padRight = function () {
-            return call(weaving.padRight, this, arguments);
-        };
-        String.prototype.capitalize = function () {
-            return call(weaving.capitalize, this, arguments);
-        };
+    proto: function (replace) {
+        for (var fname in protos) {
+            (function (fn) {
+                if (replace || !(fn in String.prototype)) {
+                    var keys = protos[fn];
+                    if (typeof keys == "string") keys = [keys];
+                    var func = function () {
+                        Array.prototype.unshift.apply(arguments, [this]);
+                        return weaving[fn].apply(null, arguments);
+                    };
+                    for (var i = 0; i < keys.length; i++) String.prototype[keys[i] == "&" ? fn : keys[i]] = func;
+                }
+            })(fname);
+        }
     },
     weave: function (str) {
         return new weave (str, Array.prototype.slice.apply(arguments, [1])).weave();
@@ -171,16 +143,15 @@ var weaving = module.exports = {
     capitalize: function (str, offset) {
         if (typeof offset != "number") offset = 0;
         return (offset > 0 ? str.slice(0, offset) : "") + str.charAt(offset).toUpperCase() + (offset < str.length - 1 ? str.slice(offset + 1) : "");
+    },
+    startsWith: function (str, substr) {
+        return str.lastIndexOf(substr, 0) === 0;
+    },
+    endsWith: function (str, substr) {
+        var nl = str.length - substr.length;
+        return str.indexOf(substr, nl) === nl;
+    },
+    tailsMatch: function (str, startswith, endswith) {
+        return this.startsWith(str, startswith) && this.endsWith(str, endswith);
     }
 };
-
-weaving.proto();
-
-console.log("{0}!".weaveStrict("Hello, world!"));
-
-var greetings = ["hi", "hello", "hey", "wazzup"];
-var things = ["Bob", "world", "Yuudachi", "banana boy"];
-
-for (var i = 0; i < greetings.length; i++) {
-    console.log("{greeting}, {what}!".weaveStrict({greeting: greetings[i].capitalize(), what: things[i]}));
-}
