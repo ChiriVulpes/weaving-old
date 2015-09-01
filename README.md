@@ -12,19 +12,16 @@ It gets more complicated (and fancy!):
 	var example = "Hello, world!{0? My name is {0}.}";
 	example.format("Joe"); // -> "Hello, world! My name is Joe."
 	example.format(); // -> "Hello, world!"
-	
+
 	example = "Hello, {1}!{0? My name is {0}.";
 	example.format("Joe", "world"); // -> "Hello, world! My name is Joe."
 	example.format(null, "world"); // -> "Hello, world!"
-	
+
 But you can also use a different string if the conditional was not truthy.
 
 	var example = "{0?My name is {0}:I have no name}.";
 	example.format("Joe"); // -> "My name is Joe."
 	example.format(null); // -> "I have no name."
-	
-<br>
-#### Coming soon!
 
 ##### Subkeys
 You can also access subkeys of args. Here's an example:
@@ -39,22 +36,25 @@ This works for arrays as well:
 
 As you've probably realised, it works the same for the argument list. By putting keys rather than integer indexes, it automatically assumes you mean 0.\<key\> To give you an example, `"{name}"` is interpreted as `"{0.name}"`
 
-##### Looping 
+<br>
+#### Coming soon!
+
+##### Looping
 To simply loop over the arguments:
 
 	"All arguments: {*}".format("blah", "pie", "cake"); // -> "All arguments: blahpiecake"
-	
+
 To add a separator, simply put the text you want to use for it after the asterisk.
 
 	"All arguments: {*, }".format("blah", "pie", "cake"); // -> "All arguments: blah, pie, cake"
-	
+
 You don't have to print out the values you're looping through either, by the way. For example:
 
 	var example = "{*, :Value {!}\\: {&}}";
 	example.format("blah", "pie", "cake"); // -> "Value 1: blah, Value 2: pie, Value 3: cake"
-	
+
 As you can probably tell, `{!}` retrieves the current index, while `{&}` retrieves the current value.
-	
+
 You don't have to loop over the argument list, however. You can also loop over arrays in your arguments.
 
 	"List of {0}: {1*, }".format("users", ["Joe", "Bob", "Stevie"]); // -> "List of users: Joe, Bob, Stevie"
@@ -71,8 +71,13 @@ Weaving also offers a couple utility functions.
 ## Installation and use
 
 You can get the package with `npm install weaving` or by adding it to your `package.json` and running `npm install`
-Alternatively, visit the [page on npm](https://www.npmjs.com/package/weaving)!
 
 To use it, simply do `require('weaving')`. It'll return an object with these functions, along with `.proto()`
 Calling `.proto()` will apply weaving to your String prototype, replacing any existing functions of the same name, but it allows you to call the methods like I did in this tutorial. =) <br>
 Alternatively you can just call the functions in the object weaving returns.
+
+
+## Links
+
+- [npm](https://www.npmjs.com/package/weaving)
+- [github](https://github.com/aarilight/weaving)
