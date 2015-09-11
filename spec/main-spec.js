@@ -102,5 +102,15 @@ describe("weaving", function () {
                 expect("List of {0}: {1*, }".weave(tests[i].type, tests[i].list)).toEqual("List of " + tests[i].type + ": " + tests[i].list.join(", "));
             }
         });
+        it("should allow stacked loops", function () {
+            var example = "Foods:{0*:\n  {!}~:\n    {&*, }}";
+            var foods = {
+                fruits: ["apples", "bananas", "pears"],
+                candies: ["chocolate", "lollipops"],
+                meats: ["pork", "beef", "chicken", "venison"]
+            };
+            var expected = "Foods:\n  fruits:\n    apples, bananas, pears\n  candies:\n    chocolate, lollipops\n  meats:\n    pork, beef, chicken, venison"
+            expect(example.weave(foods)).toEqual(expected);
+        });
     });
 });
