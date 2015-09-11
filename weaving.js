@@ -69,8 +69,10 @@ weave.prototype.compile = function (str) {
         var keys = this.getKeys(str.slice(1));
         var offset = keys.offset + 1;
         var value = keys.keys ? this.getValue(keys.keys) : undefined;
-        if (str[offset] == "}") return value === undefined ? str : value;
-        else if (str[offset] == "?") {
+        if (str[offset] == "}") {
+            if (this.strict && value === undefined) throw new this.ArgumentError(keys.keys ? keys.keys.join('.') : 'unknown');
+            return value === undefined ? str : value;
+        } else if (str[offset] == "?") {
             var colonOffset = nextOccurence(/(^|[^~])(~~)*:/, str, offset);
             if (value) {
                 return this.compile(str.slice(offset + 1, colonOffset));
@@ -131,6 +133,7 @@ weave.prototype.escapeChar = function ( char ) {
     return char;
 };
 weave.prototype.getValue = function (keys) {
+    keys = keys.slice();
     if (keys[0][0].match(/[&!]/)) {
         if (keys[0].length == 1) {
             keys[0] += "-1";
@@ -160,7 +163,7 @@ weave.prototype.getValue = function (keys) {
 
 var protos = {
     weave: ["&", "format"],
-    weaveStrict: ["&", "formatStrict"],
+    weaveIgnore: ["&", "formatIgnoreErrors"],
     padLeft: "&",
     padRight: "&",
     capitalize: ["&", "capitalise"],
@@ -185,10 +188,10 @@ var weaving = module.exports = {
             })(fname);
         }
     },
-    weave: function (str) {
+    weaveIgnore: function (str) {
         return new weave (str, Array.prototype.slice.apply(arguments, [1])).weave();
     },
-    weaveStrict: function (str) {
+    weave: function (str) {
         return new weave (str, Array.prototype.slice.apply(arguments, [1]), true).weave();
     },
     padLeft: function (str, length, padWith) {
