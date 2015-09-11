@@ -6,6 +6,8 @@ Works like the `string.format` in most languages. Here's a simple example:
 	"Hello, {0}!".format("world"); // -> "Hello, world!"
 	"Hello, {1}! My name is {0}.".format("Joe", "world"); // -> "Hello, world! My name is Joe."
 
+<br>
+
 ##### Conditionals
 It gets more complicated (and fancy!):
 
@@ -22,6 +24,8 @@ But you can also use a different string if the conditional was not truthy.
 	var example = "{0?My name is {0}:I have no name}.";
 	example.format("Joe"); // -> "My name is Joe."
 	example.format(null); // -> "I have no name."
+
+<br>
 
 ##### Subkeys
 You can also access subkeys of args. Here's an example:
@@ -63,9 +67,9 @@ You don't have to loop over the argument list, however. You can also loop over a
 Weaving also offers a couple utility functions.
 
 - `.weave(...args)`:
-	- Weaves a string. See above.
-- `.weaveStrict(...args)`:
-	- Weaves a string. Throws an error if the formatting is incorrect or an argument that does not exist is requested.
+	- Weaves a string. Throws an error if the formatting is incorrect or an argument that does not exist is requested. See above.
+- `.weaveIgnore(...args)`:
+	- Weaves a string. Leaves substrings alone on errors.
 - `.padLeft(length, with)`:
 	- Pads the left side of a string so that it is at least the given length, with the provided substring.
 - `.padRight(length, with)`:
@@ -84,7 +88,7 @@ Here's an example of the `which` object:
 
 	var protos = {
 	    weave: ["&", "format"],
-	    weaveStrict: ["&", "formatStrict"],
+	    weaveIgnore: ["&", "formatIgnoreErrors"],
 	    padLeft: "&",
 	    padRight: "&",
 	    capitalize: ["&", "capitalise"],
@@ -92,6 +96,8 @@ Here's an example of the `which` object:
 	    endsWith: "&",
 	    tailsMatch: ["&", "startsAndEndsWith"]
 	};
+
+<br>
 
 ## Installation and use
 
