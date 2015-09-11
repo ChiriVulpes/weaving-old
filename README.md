@@ -37,7 +37,6 @@ This works for arrays as well:
 As you've probably realised, it works the same for the argument list. By putting keys rather than integer indexes, it automatically assumes you mean 0.\<key\> To give you an example, `"{name}"` is interpreted as `"{0.name}"`
 
 <br>
-#### Coming soon!
 
 ##### Looping
 To simply loop over the arguments:
@@ -55,7 +54,7 @@ You don't have to print out the values you're looping through either, by the way
 
 As you can probably tell, `{!}` retrieves the current index, while `{&}` retrieves the current value.
 
-You don't have to loop over the argument list, however. You can also loop over arrays in your arguments.
+You don't have to loop over the argument list, however. You can also loop over arrays/objects in your arguments.
 
 	"List of {0}: {1*, }".format("users", ["Joe", "Bob", "Stevie"]); // -> "List of users: Joe, Bob, Stevie"
 
