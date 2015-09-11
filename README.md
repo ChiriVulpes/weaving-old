@@ -62,6 +62,8 @@ You don't have to loop over the argument list, however. You can also loop over a
 
 	"List of {0}: {1*, }".format("users", ["Joe", "Bob", "Stevie"]); // -> "List of users: Joe, Bob, Stevie"
 
+<br>
+
 #### Utility functions
 
 Weaving also offers a couple utility functions.
