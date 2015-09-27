@@ -1,6 +1,6 @@
 {
     "name": "weaving",
-    "version": "0.2.1",
+    "version": "0.3.0",
     "description": "Exposes a sexy string-formatting/building api.",
     "license": "MIT",
     "author": {

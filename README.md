@@ -3,8 +3,8 @@ A node module that exposes a sexy string-formatting api.
 
 Works like the `string.format` in most languages. Here's a simple example:
 
-	"Hello, {0}!".format("world"); // -> "Hello, world!"
-	"Hello, {1}! My name is {0}.".format("Joe", "world"); // -> "Hello, world! My name is Joe."
+	"Hello, {0}!".weave("world"); // -> "Hello, world!"
+	"Hello, {1}! My name is {0}.".weave("Joe", "world"); // -> "Hello, world! My name is Joe."
 
 <br>
 
@@ -12,18 +12,18 @@ Works like the `string.format` in most languages. Here's a simple example:
 It gets more complicated (and fancy!):
 
 	var example = "Hello, world!{0? My name is {0}.}";
-	example.format("Joe"); // -> "Hello, world! My name is Joe."
-	example.format(); // -> "Hello, world!"
+	example.weave("Joe"); // -> "Hello, world! My name is Joe."
+	example.weave(); // -> "Hello, world!"
 
 	example = "Hello, {1}!{0? My name is {0}.";
-	example.format("Joe", "world"); // -> "Hello, world! My name is Joe."
-	example.format(null, "world"); // -> "Hello, world!"
+	example.weave("Joe", "world"); // -> "Hello, world! My name is Joe."
+	example.weave(null, "world"); // -> "Hello, world!"
 
 But you can also use a different string if the conditional was not truthy.
 
 	var example = "{0?My name is {0}:I have no name}.";
-	example.format("Joe"); // -> "My name is Joe."
-	example.format(null); // -> "I have no name."
+	example.weave("Joe"); // -> "My name is Joe."
+	example.weave(null); // -> "I have no name."
 
 <br>
 
@@ -31,12 +31,12 @@ But you can also use a different string if the conditional was not truthy.
 You can also access subkeys of args. Here's an example:
 
 	var example = "Hello, {name}! You've been playing for {timePlayed} hours.";
-	example.format({name: "ExampleUser", timePlayed: 234.3}); // -> "Hello, ExampleUser! You've been playing for 234.3 hours."
+	example.weave({name: "ExampleUser", timePlayed: 234.3}); // -> "Hello, ExampleUser! You've been playing for 234.3 hours."
 
 This works for arrays as well:
 
 	var example = "Hello, {name}! You've been playing for {game.1.timePlayed} hours.";
-	example.format({name: "ExampleUser2", game: [{},{timePlayed: 234.3}]}); // -> "Hello, ExampleUser2! You've been playing for 234.3 hours."
+	example.weave({name: "ExampleUser2", game: [{},{timePlayed: 234.3}]}); // -> "Hello, ExampleUser2! You've been playing for 234.3 hours."
 
 As you've probably realised, it works the same for the argument list. By putting keys rather than integer indexes, it automatically assumes you mean 0.\<key\> To give you an example, `"{name}"` is interpreted as `"{0.name}"`
 
@@ -45,22 +45,47 @@ As you've probably realised, it works the same for the argument list. By putting
 ##### Looping
 To simply loop over the arguments:
 
-	"All arguments: {*}".format("blah", "pie", "cake"); // -> "All arguments: blahpiecake"
+	"All arguments: {*}".weave("blah", "pie", "cake"); // -> "All arguments: blahpiecake"
 
 To add a separator, simply put the text you want to use for it after the asterisk.
 
-	"All arguments: {*, }".format("blah", "pie", "cake"); // -> "All arguments: blah, pie, cake"
+	"All arguments: {*, }".weave("blah", "pie", "cake"); // -> "All arguments: blah, pie, cake"
 
 You don't have to print out the values you're looping through either, by the way. For example:
 
 	var example = "{*, :Value {!}\\: {&}}";
-	example.format("blah", "pie", "cake"); // -> "Value 1: blah, Value 2: pie, Value 3: cake"
+	example.weave("blah", "pie", "cake"); // -> "Value 1: blah, Value 2: pie, Value 3: cake"
 
 As you can probably tell, `{!}` retrieves the current index, while `{&}` retrieves the current value.
 
 You don't have to loop over the argument list, however. You can also loop over arrays/objects in your arguments.
 
-	"List of {0}: {1*, }".format("users", ["Joe", "Bob", "Stevie"]); // -> "List of users: Joe, Bob, Stevie"
+	"List of {0}: {1*, }".weave("users", ["Joe", "Bob", "Stevie"]); // -> "List of users: Joe, Bob, Stevie"
+
+##### Length
+
+But what if you just want to get or check the length of an object? You can do that too, with the `..` operator!
+
+	var example = "the list {0..?has items!:is empty...}";
+
+	example.weave([]); // -> "the list is empty..."
+	example.weave([1, 2, 3]); // -> "the list has items!"
+
+	example.weave({}); // -> "the list is empty..."
+	example.weave({item1: 1, item2: 2}); // -> "the list has items!"
+
+By not providing any keys, you are working on the provided arguments.
+
+	var example = "there are{..?: no} arguments";
+
+	example.weave(); // -> "there are no arguments"
+	example.weave(1, 2, 3); // -> "there are arguments"
+
+This also works for simply including the list length.
+
+	var example = "there are {..} arguments";
+
+	example.weave(1, 2, 3); // -> "there are 3 arguments"
 
 <br>
 

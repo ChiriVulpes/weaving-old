@@ -72,7 +72,21 @@ weave.prototype.compile = function (str) {
         if (str[offset] == "}") {
             if (this.strict && value === undefined) throw new this.ArgumentError(keys.keys ? keys.keys.join('.') : 'unknown');
             return value === undefined ? str : value;
-        } else if (str[offset] == "?") {
+        } else if (str[offset] == "?" || str.substr(offset, 3) == "..?") {
+            if (str.substr(offset, 3) == "..?") {
+                offset = offset + 2;
+                if (typeof value == "object") {
+                    if (value.constructor.name == "Array") {
+                        value = value.length > 0;
+                    } else {
+                        value = Object.keys(value).length > 0;
+                    }
+                } else if (value === undefined && keys.keys === false) {
+                    value = this.args.length;
+                } else {
+                    value = false;
+                }
+            }
             var colonOffset = nextOccurence(/(^|[^~])(~~)*:/, str, offset);
             if (value) {
                 return this.compile(str.slice(offset + 1, colonOffset));
@@ -96,6 +110,19 @@ weave.prototype.compile = function (str) {
                 else for (var i in value) add(i);
                 return result.join(this.compile(str.slice(offset + 1, colonOffset)));
             }
+        } else if (str.substr(offset, 3) == "..}") {
+            offset = offset + 2;
+            if (typeof value == "object") {
+                if (value.constructor.name == "Array") {
+                    return value.length;
+                } else {
+                    return Object.keys(value).length;
+                }
+            } else if (value === undefined && keys.keys === false) {
+                return this.args.length;
+            } else {
+                if (this.strict) throw new this.ArgumentError(keys.keys ? keys.keys.join('.') : 'unknown');
+            }
         } else {
             if (this.strict) throw new this.FormatError(str);
         }
@@ -110,6 +137,7 @@ weave.prototype.compile = function (str) {
     }
     throw error;
 };
+
 weave.prototype.getKeys = function (str) {
     var keys = [];
     var key = "";
@@ -119,10 +147,21 @@ weave.prototype.getKeys = function (str) {
             key += this.escapeChar(str[i]);
             continue;
         }
-        if (str[i] == "." && key.length > 0) {
-            keys.push(key);
-            key = "";
-            continue;
+        if (str[i] == ".") {
+            var cont = false;
+            if (key.length > 0) {
+                keys.push(key);
+                key = "";
+                cont = true;
+            }
+            if (str[i + 1] == ".") {
+                if (/[?}]/.test(str[i + 2])) {
+                    break;
+                } else {
+                    if (this.strict) throw new this.FormatError(str);
+                }
+            }
+            if (cont) continue;
         }
         key += str[i];
     }

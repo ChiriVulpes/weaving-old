@@ -113,4 +113,36 @@ describe("weaving", function () {
             expect(example.weave(foods)).toEqual(expected);
         });
     });
+    describe("with length checks", function () {
+        var example = "{0..?the list isn't empty!:the list is empty...}";
+        it("should work for arrays", function () {
+            expect(example.weave([])).toEqual("the list is empty...");
+            expect(example.weave([""])).toEqual("the list isn't empty!");
+        });
+        it("should also work for objects", function () {
+            expect(example.weave({})).toEqual("the list is empty...");
+            expect(example.weave({item1: ""})).toEqual("the list isn't empty!");
+        });
+        it("should also work for the arguments list", function () {
+            var example = "{..?there are arguments!:there are no arguments...}";
+            expect(example.weave()).toEqual("there are no arguments...");
+            expect(example.weave("")).toEqual("there are arguments!");
+        });
+        var example2 = "{0..}";
+        describe("should allow using the length in the resulting string and", function () {
+            it("should work for arrays", function () {
+                expect(example2.weave([])).toEqual("0");
+                expect(example2.weave([1, 2, 3])).toEqual("3");
+            });
+            it("should also work for objects", function () {
+                expect(example2.weave({})).toEqual("0");
+                expect(example2.weave({item1: 1, item2: 2, item3: 3})).toEqual("3");
+            });
+            it("should also work for the arguments list", function () {
+                var example = "{..}";
+                expect(example.weave()).toEqual("0");
+                expect(example.weave(1, 2, 3)).toEqual("3");
+            });
+        });
+    });
 });
