@@ -128,6 +128,11 @@ describe("weaving", function () {
             expect(example.weave()).toEqual("there are no arguments...");
             expect(example.weave("")).toEqual("there are arguments!");
         });
+        it("should also work for a string", function () {
+            var example = "{0..?there's a string!:the string is empty...}";
+            expect(example.weave("")).toEqual("the string is empty...");
+            expect(example.weave("hello, world!")).toEqual("there's a string!");
+        });
         var example2 = "{0..}";
         describe("should allow using the length in the resulting string and", function () {
             it("should work for arrays", function () {
@@ -143,6 +148,31 @@ describe("weaving", function () {
                 expect(example.weave()).toEqual("0");
                 expect(example.weave(1, 2, 3)).toEqual("3");
             });
+            it("should also work for a string", function () {
+                var example = "{0..}";
+                expect(example.weave("")).toEqual("0");
+                expect(example.weave("hello")).toEqual("5");
+            });
         });
+    });
+    it("with tabbification", function () {
+        var escape = function (str) {
+            return str.replace(/\r/g, "\\r").replace(/\n/g, "\\n").replace(/\t/g, "\\t");
+        };
+        var example = "{>test\ntest}";
+        expect(escape(example.weave())).toEqual(escape("\ttest\n\ttest"));
+
+        example = "test\n{>test\ntest}\ntest";
+        expect(escape(example.weave())).toEqual(escape("test\n\ttest\n\ttest\ntest"));
+
+        example = "test\n{>>test\ntest}\ntest";
+        expect(escape(example.weave())).toEqual(escape("test\n\t\ttest\n\t\ttest\ntest"));
+
+        example = "{>test\n{>test\ntest}\ntest}";
+        expect(escape(example.weave())).toEqual(escape("\ttest\n\t\ttest\n\t\ttest\n\ttest"));
+
+        example = "test\n{>test\ntest\n{>>test\ntest\ntest}\ntest}\ntest";
+        expect(escape(example.weave())).toEqual(escape("test\n\ttest\n\ttest\n\t\t\ttest\n\t\t\ttest\n\t\t\ttest\n\ttest\ntest"));
+
     });
 });

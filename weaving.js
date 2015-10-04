@@ -66,6 +66,11 @@ var nextOccurence = function (rgx, str, offset) {
 weave.prototype.compile = function (str) {
     var error = new Error;
     if (weaving.tailsMatch(str, "{", "}")) {
+        if (str[1] == ">") {
+            var i = 1;
+            while (str[i] == ">") i++;
+            return this.compile(str.slice(i, -1)).tabbify(i - 1);
+        }
         var keys = this.getKeys(str.slice(1));
         var offset = keys.offset + 1;
         var value = keys.keys ? this.getValue(keys.keys) : undefined;
@@ -81,6 +86,8 @@ weave.prototype.compile = function (str) {
                     } else {
                         value = Object.keys(value).length > 0;
                     }
+                } else if (typeof value == "string") {
+                    value = value.length > 0;
                 } else if (value === undefined && keys.keys === false) {
                     value = this.args.length;
                 } else {
@@ -118,6 +125,8 @@ weave.prototype.compile = function (str) {
                 } else {
                     return Object.keys(value).length;
                 }
+            } else if (typeof value == "string") {
+                return value.length;
             } else if (value === undefined && keys.keys === false) {
                 return this.args.length;
             } else {
@@ -208,7 +217,9 @@ var protos = {
     capitalize: ["&", "capitalise"],
     startsWith: "&",
     endsWith: "&",
-    tailsMatch: ["&", "startsAndEndsWith"]
+    tailsMatch: ["&", "startsAndEndsWith"],
+    tabbify: ["&", "tabify"],
+    repeat: "&"
 };
 
 var weaving = module.exports = {
@@ -254,5 +265,17 @@ var weaving = module.exports = {
     },
     tailsMatch: function (str, startswith, endswith) {
         return this.startsWith(str, startswith) && this.endsWith(str, endswith);
+    },
+    tabbify: function (str, tabs) {
+        return str.replace(/(^|\r?\n)/g, "$1" + "\t".repeat(tabs));
+    },
+    repeat: function (str, count) {
+        if (count < 1) return '';
+        var result = '';
+        while (count > 1) {
+            if (count & 1) result += str;
+            count >>= 1, str += str;
+        }
+        return result + str;
     }
 };
