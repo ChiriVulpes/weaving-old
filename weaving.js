@@ -80,6 +80,7 @@ weave.prototype.compile = function (str) {
         } else if (str[offset] == "?" || str.substr(offset, 3) == "..?") {
             if (str.substr(offset, 3) == "..?") {
                 offset = offset + 2;
+                if (typeof value == "number") value = String(value);
                 if (typeof value == "object") {
                     if (value.constructor.name == "Array") {
                         value = value.length > 0;
