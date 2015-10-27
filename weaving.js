@@ -1,16 +1,22 @@
-
-Error.extend = function (name, message) {
+Error.create = function (name, message) {
     return function () {
-        Error.captureStackTrace(this, this.constructor);
+        this.prototype = new Error;
         this.name = name;
         Array.prototype.unshift.apply(arguments, [message]);
         try {
-            this.message = weaving.weave.apply(weaving, arguments);
+            this.message = String.weaving.weave.apply(String.weaving, arguments);
         } catch (error) {
+            throw error;
             this.message = message;
         }
-    };
+        Error.captureStackTrace(this, this.constructor);
+        this.stack = this.stack.replace(/^[^\n]*\n/, "");
+    }
 };
+
+var FormatError = Error.create('FormatError', 'There was an error in your syntax, in the given string "{0}"');
+var ArgumentError = Error.create('ArgumentError', 'There was an error using the argument identified by "{0}"');
+var UnsupportedError = Error.create('UnsupportedError', 'Sorry, you used an currently unsupported feature: "{0}"');
 
 var weave = function (str, args, strict) {
     this.str = str;
@@ -21,9 +27,6 @@ var weave = function (str, args, strict) {
     this.segments = [];
     this.result = "";
     this.strict = !!strict;
-    this.FormatError = Error.extend('FormatError', 'There was an error in your syntax, in the given string "{0}"');
-    this.ArgumentError = Error.extend('ArgumentError', 'There was an error using the argument identified by "{0}"');
-    this.UnsupportedError = Error.extend('UnsupportedError', 'Sorry, you used an currently unsupported feature: "{0}"');
 };
 weave.prototype.weave = function () {
     try {
@@ -73,9 +76,9 @@ weave.prototype.compile = function (str) {
         }
         var keys = this.getKeys(str.slice(1));
         var offset = keys.offset + 1;
-        var value = keys.keys ? this.getValue(keys.keys) : undefined;
+        var value = keys.keys !== undefined ? this.getValue(keys.keys) : undefined;
         if (str[offset] == "}") {
-            if (this.strict && value === undefined) throw new this.ArgumentError(keys.keys ? keys.keys.join('.') : 'unknown');
+            if (this.strict && value === undefined) throw new ArgumentError(keys.keys !== undefined ? keys.keys.join('.') : 'unknown');
             return value === undefined ? str : value;
         } else if (str[offset] == "?" || str.substr(offset, 3) == "..?") {
             if (str.substr(offset, 3) == "..?") {
@@ -131,12 +134,12 @@ weave.prototype.compile = function (str) {
             } else if (value === undefined && keys.keys === false) {
                 return this.args.length;
             } else {
-                if (this.strict) throw new this.ArgumentError(keys.keys ? keys.keys.join('.') : 'unknown');
+                if (this.strict) throw new ArgumentError(keys.keys ? keys.keys.join('.') : 'unknown');
             }
         } else {
-            if (this.strict) throw new this.FormatError(str);
+            if (this.strict) throw new FormatError(str);
         }
-        if (this.strict) throw new this.ArgumentError(keys.keys ? keys.keys.join('.') : 'unknown');
+        if (this.strict) throw new ArgumentError(keys.keys ? keys.keys.join('.') : 'unknown');
         return value === undefined ? str : value;
     } else {
         var _this = this;
@@ -168,7 +171,7 @@ weave.prototype.getKeys = function (str) {
                 if (/[?}]/.test(str[i + 2])) {
                     break;
                 } else {
-                    if (this.strict) throw new this.FormatError(str);
+                    if (this.strict) throw new FormatError(str);
                 }
             }
             if (cont) continue;
@@ -223,7 +226,7 @@ var protos = {
     repeat: "&"
 };
 
-var weaving = module.exports = {
+var weaving = String.weaving = module.exports = {
     proto: function (replace) {
         for (var fname in protos) {
             (function (fn) {
