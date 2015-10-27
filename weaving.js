@@ -76,9 +76,9 @@ weave.prototype.compile = function (str) {
         }
         var keys = this.getKeys(str.slice(1));
         var offset = keys.offset + 1;
-        var value = keys.keys !== undefined ? this.getValue(keys.keys) : undefined;
+        var value = keys.keys ? this.getValue(keys.keys) : undefined;
         if (str[offset] == "}") {
-            if (this.strict && value === undefined) throw new ArgumentError(keys.keys !== undefined ? keys.keys.join('.') : 'unknown');
+            if (this.strict && value === undefined) throw new ArgumentError(keys.keys ? keys.keys.join('.') : 'unknown');
             return value === undefined ? str : value;
         } else if (str[offset] == "?" || str.substr(offset, 3) == "..?") {
             if (str.substr(offset, 3) == "..?") {
