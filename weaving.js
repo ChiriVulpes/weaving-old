@@ -10,7 +10,7 @@ Error.create = function (name, message) {
             this.message = message;
         }
         Error.captureStackTrace(this, this.constructor);
-        this.stack = this.stack.replace(/^[^\n]*\n/, "");
+        this.stack = this.stack.replace(/^[^\n]*(?=\n)/, this.name + ": " + this.message);
     }
 };
 
