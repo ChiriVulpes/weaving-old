@@ -1,22 +1,130 @@
-Error.create = function (name, message) {
-    return function () {
-        this.prototype = new Error;
-        this.name = name;
-        Array.prototype.unshift.apply(arguments, [message]);
-        try {
-            this.message = String.weaving.weave.apply(String.weaving, arguments);
-        } catch (error) {
-            throw error;
-            this.message = message;
-        }
-        Error.captureStackTrace(this, this.constructor);
-        this.stack = this.stack.replace(/^[^\n]*(?=\n)/, this.name + ": " + this.message);
+var proto = function (protos, to, replace, prototype) {
+    for (var fname in protos) {
+        (function (fn, lib) {
+            var keys = protos[fn];
+            if (!(fn in lib)) {
+                fn = fn.split(".");
+                if (fn.length > 1) {
+                    for (var i = 0; i < fn.length - 1; i++) {
+                        if (fn[i] in lib) lib = lib[fn[i]];
+                        else return;
+                    }
+                    fn = fn[fn.length - 1];
+                } else return;
+            }
+            if (replace || !(fn in to.prototype)) {
+                if (typeof keys == "string") keys = [keys];
+                if (keys.constructor.name == "Array") {
+                    if (prototype === undefined) prototype = true;
+                    var func = function () {
+                        if (prototype) Array.prototype.unshift.apply(arguments, [this]);
+                        return lib[fn].apply(null, arguments);
+                    };
+                    var to2 = prototype ? to.prototype : to;
+                    for (var i = 0; i < keys.length; i++) to2[keys[i] == "&" ? fn : keys[i]] = func;
+                }
+            }
+            if (lib[fn].constructor.name == "Object") {
+                proto(lib[fn], to, replace);
+            }
+        })(fname, weaving);
     }
 };
 
-var FormatError = Error.create('FormatError', 'There was an error in your syntax, in the given string "{0}"');
-var ArgumentError = Error.create('ArgumentError', 'There was an error using the argument identified by "{0}"');
-var UnsupportedError = Error.create('UnsupportedError', 'Sorry, you used an currently unsupported feature: "{0}"');
+var weaving = String.weaving = module.exports = {
+    errors: {
+        create: function (name, message) {
+            return function () {
+                this.prototype = new Error;
+                this.name = name;
+                Array.prototype.unshift.apply(arguments, [message]);
+                try {
+                    this.message = String.weaving.weave.apply(String.weaving, arguments);
+                } catch (error) {
+                    throw error;
+                    this.message = message;
+                }
+                Error.captureStackTrace(this, this.constructor);
+                this.stack = this.stack.replace(/^[^\n]*(?=\n)/, this.name + ": " + this.message);
+            }
+        },
+        trim: function (errorOrStack) {
+            var stack = errorOrStack instanceof Error ? errorOrStack.stack : errorOrStack;
+            return stack.replace(/^[^\n]*\r?\n/, "");
+        },
+    },
+    applyProtos: function (replace, to, which) {
+        if (which === undefined) {
+            proto(protos.string, String, replace);
+            proto(protos.error, Error, replace, false);
+        } else {
+            proto(which, to, replace);
+        }
+    },
+    weaveIgnore: function (str) {
+        return new weave (str, Array.prototype.slice.apply(arguments, [1])).weave();
+    },
+    weave: function (str) {
+        return new weave (str, Array.prototype.slice.apply(arguments, [1]), true).weave();
+    },
+    padLeft: function (str, length, padWith) {
+        while (str.length < length) str = padWith + str;
+        return str;
+    },
+    padRight: function (str, length, padWith) {
+        while (str.length < length) str += padWith;
+        return str;
+    },
+    capitalize: function (str, offset) {
+        if (typeof offset != "number") offset = 0;
+        return (offset > 0 ? str.slice(0, offset) : "") + str.charAt(offset).toUpperCase() + (offset < str.length - 1 ? str.slice(offset + 1) : "");
+    },
+    startsWith: function (str, substr) {
+        return str.lastIndexOf(substr, 0) === 0;
+    },
+    endsWith: function (str, substr) {
+        var nl = str.length - substr.length;
+        return str.indexOf(substr, nl) === nl;
+    },
+    tailsMatch: function (str, startswith, endswith) {
+        return this.startsWith(str, startswith) && this.endsWith(str, endswith);
+    },
+    tabbify: function (str, tabs) {
+        return str.replace(/(^|\r?\n)/g, "$1" + "\t".repeat(tabs));
+    },
+    repeat: function (str, count) {
+        if (count < 1) return '';
+        var result = '';
+        while (count > 1) {
+            if (count & 1) result += str;
+            count >>= 1, str += str;
+        }
+        return result + str;
+    }
+};
+
+var protos = {
+    string: {
+        weave: ["&", "format"],
+        weaveIgnore: ["&", "formatIgnoreErrors"],
+        padLeft: "&",
+        padRight: "&",
+        capitalize: ["&", "capitalise"],
+        startsWith: "&",
+        endsWith: "&",
+        tailsMatch: ["&", "startsAndEndsWith"],
+        tabbify: ["&", "tabify"],
+        repeat: "&"
+    },
+    error: {
+        "errors.create": "&",
+        "errors.trim": "&"
+    }
+};
+
+var FormatError = weaving.errors.create('FormatError', 'There was an error in your syntax, in the given string "{0}"');
+var ArgumentError = weaving.errors.create('ArgumentError', 'There was an error using the argument identified by "{0}"');
+var UnsupportedError = weaving.errors.create('UnsupportedError', 'Sorry, you used an currently unsupported feature: "{0}"');
 
 var weave = function (str, args, strict) {
     this.str = str;
@@ -211,75 +319,4 @@ weave.prototype.getValue = function (keys) {
         val = val[keys[i]];
     }
     return typeof val == "string" ? val.replace(/~/g, "~~").replace(/(~+)\[/g, "$1~~[") : val;
-};
-
-var protos = {
-    weave: ["&", "format"],
-    weaveIgnore: ["&", "formatIgnoreErrors"],
-    padLeft: "&",
-    padRight: "&",
-    capitalize: ["&", "capitalise"],
-    startsWith: "&",
-    endsWith: "&",
-    tailsMatch: ["&", "startsAndEndsWith"],
-    tabbify: ["&", "tabify"],
-    repeat: "&"
-};
-
-var weaving = String.weaving = module.exports = {
-    proto: function (replace) {
-        for (var fname in protos) {
-            (function (fn) {
-                if (replace || !(fn in String.prototype)) {
-                    var keys = protos[fn];
-                    if (typeof keys == "string") keys = [keys];
-                    var func = function () {
-                        Array.prototype.unshift.apply(arguments, [this]);
-                        return weaving[fn].apply(null, arguments);
-                    };
-                    for (var i = 0; i < keys.length; i++) String.prototype[keys[i] == "&" ? fn : keys[i]] = func;
-                }
-            })(fname);
-        }
-    },
-    weaveIgnore: function (str) {
-        return new weave (str, Array.prototype.slice.apply(arguments, [1])).weave();
-    },
-    weave: function (str) {
-        return new weave (str, Array.prototype.slice.apply(arguments, [1]), true).weave();
-    },
-    padLeft: function (str, length, padWith) {
-        while (str.length < length) str = padWith + str;
-        return str;
-    },
-    padRight: function (str, length, padWith) {
-        while (str.length < length) str += padWith;
-        return str;
-    },
-    capitalize: function (str, offset) {
-        if (typeof offset != "number") offset = 0;
-        return (offset > 0 ? str.slice(0, offset) : "") + str.charAt(offset).toUpperCase() + (offset < str.length - 1 ? str.slice(offset + 1) : "");
-    },
-    startsWith: function (str, substr) {
-        return str.lastIndexOf(substr, 0) === 0;
-    },
-    endsWith: function (str, substr) {
-        var nl = str.length - substr.length;
-        return str.indexOf(substr, nl) === nl;
-    },
-    tailsMatch: function (str, startswith, endswith) {
-        return this.startsWith(str, startswith) && this.endsWith(str, endswith);
-    },
-    tabbify: function (str, tabs) {
-        return str.replace(/(^|\r?\n)/g, "$1" + "\t".repeat(tabs));
-    },
-    repeat: function (str, count) {
-        if (count < 1) return '';
-        var result = '';
-        while (count > 1) {
-            if (count & 1) result += str;
-            count >>= 1, str += str;
-        }
-        return result + str;
-    }
 };

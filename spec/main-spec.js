@@ -1,5 +1,11 @@
 
-require("../weaving.js").proto();
+
+
+var weaving = require("../weaving.js");
+
+weaving.applyProtos();
+
+// TODO tests for applyProtos
 
 describe("weaving", function () {
     describe("a normal string", function () {
@@ -176,3 +182,5 @@ describe("weaving", function () {
 
     });
 });
+
+// TODO tests for utility functions
