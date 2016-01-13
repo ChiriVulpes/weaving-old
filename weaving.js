@@ -33,7 +33,7 @@ var proto = function (protos, to, replace, prototype) {
 
 var weaving = String.weaving = module.exports = {
     errors: {
-        create: function (name, message) {
+        create: function (name, message, where) {
             return function () {
                 this.prototype = new Error;
                 this.name = name;
@@ -44,7 +44,7 @@ var weaving = String.weaving = module.exports = {
                     throw error;
                     this.message = message;
                 }
-                Error.captureStackTrace(this, this.constructor);
+                Error.captureStackTrace(this, where === undefined ? this.constructor : where);
                 this.stack = this.stack.replace(/^[^\n]*(?=\n)/, this.name + ": " + this.message);
             }
         },
@@ -121,11 +121,6 @@ var protos = {
         "errors.trim": "&"
     }
 };
-
-var FormatError = weaving.errors.create('FormatError', 'There was an error in your syntax, in the given string "{0}"');
-var ArgumentError = weaving.errors.create('ArgumentError', 'There was an error using the argument identified by "{0}"');
-var UnsupportedError = weaving.errors.create('UnsupportedError', 'Sorry, you used an currently unsupported feature: "{0}"');
-
 var weave = function (str, args, strict) {
     this.str = str;
     this.cursor = -1;
@@ -150,6 +145,11 @@ weave.prototype.weave = function () {
     }
     return this.result;
 };
+
+var FormatError = weaving.errors.create('FormatError', 'There was an error in your syntax, in the given string "{0}"', weave.prototype.weave);
+var ArgumentError = weaving.errors.create('ArgumentError', 'There was an error using the argument identified by "{0}"', weave.prototype.weave);
+var UnsupportedError = weaving.errors.create('UnsupportedError', 'Sorry, you used an currently unsupported feature: "{0}"', weave.prototype.weave);
+
 weave.prototype.extract = function () {
     var str = this.str
         .replace(/(~*)\[/g, "$1~~[")
