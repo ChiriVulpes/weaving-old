@@ -53,7 +53,7 @@ To add a separator, simply put the text you want to use for it after the asteris
 
 You don't have to print out the values you're looping through either, by the way. For example:
 
-	var example = "{*, :Value {!}\\: {&}}";
+	var example = "{*, :Value {!}~: {&}}";
 	example.weave("blah", "pie", "cake"); // -> "Value 1: blah, Value 2: pie, Value 3: cake"
 
 As you can probably tell, `{!}` retrieves the current index, while `{&}` retrieves the current value.
@@ -88,6 +88,21 @@ This also works for simply including the list length.
 	var example = "there are {..} arguments";
 
 	example.weave(1, 2, 3); // -> "there are 3 arguments"
+
+<br>
+
+##### Tabbificiation
+
+For exporting code-based structures having the ability to tabbify content is important. Weaving supports this with the `>` segment.
+Here's an example:
+
+	var example = "<div>\\n{>wow this text is indented!!!\\nSo is this!}</div>"
+
+	example.weave();
+	// <div>
+	//     wow this text is indented!!!
+	//     So is this!
+	// </div>
 
 <br>
 
