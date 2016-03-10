@@ -40,6 +40,11 @@ describe("weaving", function () {
         it("should not include the conditional if it's falsey", function () {
             expect(example.weave()).toEqual("Hello, world!");
         });
+        it("should allow escaping a colon", function () {
+            var colon = "{0?~: <- a colon}";
+            expect(colon.weave(true)).toEqual(": <- a colon");
+            expect(colon.weave()).toEqual("");
+        });
     });
     describe("with multiple arguments and a conditional", function () {
         var example = "Hello, {1}!{0? My name is {0}.}";
@@ -57,6 +62,11 @@ describe("weaving", function () {
         });
         it("should include the 'else' side of the conditional if it's falsey", function () {
             expect(example.weave()).toEqual("I have no name.");
+        });
+        it("should allow escaping the colon", function () {
+            var colon = "{0?~: <- a colon:no colon!}";
+            expect(colon.weave(true)).toEqual(": <- a colon");
+            expect(colon.weave()).toEqual("no colon!");
         });
     });
     describe("with subkeys and object arguments", function () {

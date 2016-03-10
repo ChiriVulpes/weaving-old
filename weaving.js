@@ -142,6 +142,8 @@ var FormatError = weaving.errors.create('FormatError', 'There was an error in yo
 var ArgumentError = weaving.errors.create('ArgumentError', 'There was an error using the argument identified by "{0}"', weave.prototype.weave);
 var UnsupportedError = weaving.errors.create('UnsupportedError', 'Sorry, you used an currently unsupported feature: "{0}"', weave.prototype.weave);
 
+var KEYS = 0, CONTENT = 1, RAWCONTENT = 2;
+
 weave.prototype = {
     weave: function () {
         this.indent = -1;
@@ -225,7 +227,7 @@ weave.prototype = {
                     break;
                 }
                 case "number": {
-                    if (matchers[i] == 0) {
+                    if (matchers[i] == KEYS) {
                         match = {};
                         match.keys = this.getKeys(str.slice(offset));
                         if (!match.keys) return false;
@@ -234,7 +236,7 @@ weave.prototype = {
                         match.value = match.keys ? this.getValue(match.keys) : undefined;
                         break;
                     }
-                    if (matchers[i] == 2 || matchers[i] == 1) {
+                    if (matchers[i] == RAWCONTENT || matchers[i] == CONTENT) {
                         var next = matchers.length == i + 1 ? "" : matchers[i + 1],
                             str2 = str.slice(offset),
                             nextOffset = 0,
@@ -246,10 +248,12 @@ weave.prototype = {
                         if (Array.isArray(next)) next = next[0];
 
                         if (typeof next == "string") {
-                            nextOffset = str2.indexOf(next);
+                            nextOffset = RegExp("((?:^|[^~])(?:~~)*)" + next).exec(str2);
+                            nextOffset = nextOffset ? nextOffset.index + nextOffset[1].length : -1;
+
                             if ((nextOffset == -1 && optional) || matchers.length == i + 1) nextOffset = str2.length;
                             match = str2.slice(0, nextOffset);
-                            if (matchers[i] == 1) match = this.compile(match);
+                            if (matchers[i] == CONTENT) match = this.compile(match);
                         } else throw new Error;
                         offset += nextOffset;
                         break;
@@ -337,7 +341,7 @@ weave.prototype = {
             if (keys[0].match(/[&!]/)) keys.shift();
         }
         for (var i = 0; i < keys.length; i++) {
-            if (typeof keys[i] == "object" || !(keys[i] in val)) {
+            if (typeof keys[i] == "object" || !(typeof val == "object" && keys[i] in val)) {
                 if (typeof keys[i] == "object" && keys[i].checkingLength) {
                     val = Array.isArray(val) || typeof val == "string" ?(
                         val.length
