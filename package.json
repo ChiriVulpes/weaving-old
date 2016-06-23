@@ -6,8 +6,10 @@
     "author": {
         "name": "Mackenzie McClane"
     },
-    "main": "weaving.js",
+    "main": "out/weaving.js",
     "dependencies": {},
+    "typings": "out/typings/weaving.d.ts",
+
     "repository": {
         "type": "git",
         "url": "https://github.com/Aarilight/weaving"

@@ -1,9 +1,9 @@
 
 
 
-var weaving = require("../weaving.js");
+var {weaving, StringUtils: utils} = require("../../weaving");
 
-weaving.applyProtos();
+weaving.weave.applyTo("weave", String);
 
 // TODO tests for applyProtos
 
