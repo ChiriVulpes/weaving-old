@@ -8,6 +8,7 @@
     },
     "main": "out/weaving.js",
     "dependencies": {},
+    "typings": "typings/weaving.d.ts",
 
     "repository": {
         "type": "git",
