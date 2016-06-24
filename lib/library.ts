@@ -29,15 +29,15 @@ export interface Support extends Segment {
     name: string;
 }
 
-export class Library {
-    static add(generator: (api: Object) => Support) {
+export module Library {
+    export function add (generator: (api: Object) => Support) {
         var support = generator(Matchables);
         Library.segments[support.name] = support;
     }
-    static remove(name: string) {
+    export function remove (name: string) {
         delete Library.segments[name];
     }
-    static segments: { [key: string]: Segment } = {
+    export var segments: { [key: string]: Segment } = {
         tabbification: {
             match: [ REGEX(">+"), CONTENT ],
             return: (arrows: string[], content: string) => util.tabbify(content, arrows[0].length)

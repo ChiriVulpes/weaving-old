@@ -1,6 +1,6 @@
 {
     "name": "weaving",
-    "version": "0.5.0",
+    "version": "0.5.1",
     "description": "Exposes a sexy string-formatting/building api.",
     "license": "MIT",
     "author": {
@@ -8,7 +8,6 @@
     },
     "main": "out/weaving.js",
     "dependencies": {},
-    "typings": "out/typings/weaving.d.ts",
 
     "repository": {
         "type": "git",

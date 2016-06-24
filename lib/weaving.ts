@@ -1,12 +1,10 @@
 /// <reference path="types.d.ts" />
 
-import { Library, Segment } from "./library";
+import * as Lib from "./library";
 import util = require("./util");
 
-export { util as StringUtils };
-
 var _e = Error;
-export module weaving {
+module weaving {
     export function trimError(errorOrStack: Error | string) {
         var stack = errorOrStack instanceof Error ? errorOrStack.stack : errorOrStack;
         return stack.replace(/^[^\n]*\r?\n/, "");
@@ -18,44 +16,47 @@ export module weaving {
         return new weaver(weaving, true).weave(...using);
     }
 
-    export var library = Library;
+    export var StringUtils = util;
+    export var library = Lib.Library;
+    export var Matchables = Lib.Matchables;
+    export type Segment = Lib.Segment;
+    export type Support = Lib.Support;
+
     export abstract class Error {
-        protected _name: string;
-        protected _message: string;
+        name: string;
+        message: string;
         protected _stack: string;
         protected _where = weave.prototype.weave;
 
-        public get name() { return this._name; }
-        public get message() { return this._message; }
         public get stack() { return this._stack; }
 
         constructor(...using: any[]) {
             var result = {};
             (this as any)["prototype"] = new _e;
-            this._name = name;
-            using.unshift(this._message);
+            this.name = name;
+            using.unshift(this.message);
             try {
-                this._message = weaving.weave.apply(null, using);
+                this.message = weaving.weave.apply(null, using);
             } catch (error) {
                 throw error;
             }
-            _e.captureStackTrace(this, this._where === undefined ? this.constructor : this._where);
+            (_e as any).captureStackTrace(this, this._where === undefined ? this.constructor : this._where);
             this.stack = this.stack.replace(/^[^\n]*(?=\n)/, this.name + ": " + this.message);
         }
     }
 }
 
 class FormatError extends weaving.Error {
-    protected _name = 'FormatError';
-    protected _message = 'There was an error in your syntax, in the given string "{0}"';
+    name = 'FormatError';
+    message = 'There was an error in your syntax, in the given string "{0}"';
 }
 class ArgumentError extends weaving.Error {
-    protected _name = 'ArgumentError';
-    protected _message = 'There was an error using the argument identified by "{0}"';
+    name = 'ArgumentError';
+    message = 'There was an error using the argument identified by "{0}"';
 }
 class UnsupportedError extends weaving.Error {
-    protected _name = 'UnsupportedError';
-    protected _message = 'Sorry, you used an currently unsupported feature: "{0}"';
+    name = 'UnsupportedError';
+    message = 'Sorry, you used an currently unsupported feature: "{0}"';
 }
 
 
@@ -141,7 +142,7 @@ class weaver {
         return result;
         //throw error;
     }
-    findMatch (str: string): { segment: Segment, matched: boolean } {
+    findMatch (str: string): { segment: Lib.Segment, matched: boolean } {
         var matchable = false, str = str, segment = "", matched: any;
         this.indent++;
         for (segment in weaving.library.segments) {
@@ -303,3 +304,5 @@ class weaver {
 
 
 var KEYS = 0, CONTENT = 1, RAWCONTENT = 2;
+
+export = weaving;

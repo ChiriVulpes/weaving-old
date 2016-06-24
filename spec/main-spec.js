@@ -1,7 +1,7 @@
 
 
 
-var {weaving, StringUtils: utils} = require("../../weaving");
+var weaving = require("../../weaving");
 
 weaving.weave.applyTo("weave", String);
 

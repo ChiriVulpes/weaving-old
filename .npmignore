@@ -1,6 +1,5 @@
 lib
 spec
-typings
 tsconfig.json
 .gitattributes
 .vscode
