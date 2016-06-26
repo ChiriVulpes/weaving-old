@@ -3,7 +3,7 @@
 import * as Lib from "./library";
 import util = require("./util");
 
-var _e = Error;
+var NativeError = Error;
 module weaving {
     export function trimError(errorOrStack: Error | string) {
         var stack = errorOrStack instanceof Error ? errorOrStack.stack : errorOrStack;
@@ -24,39 +24,51 @@ module weaving {
 
     export abstract class Error {
         name: string;
-        message: string;
-        protected _stack: string;
-        protected _where = weave.prototype.weave;
+        protected weavingMessage: string;
+        private _stack: string;
+        private _where: Function;
 
-        public get stack() { return this._stack; }
-
-        constructor(...using: any[]) {
-            var result = {};
-            (this as any)["prototype"] = new _e;
-            this.name = name;
-            using.unshift(this.message);
+        public get stack() { 
+            return this._stack.replace(/^[^\n]*(?=\n)/, this.name + ": " + this.message);
+        }
+        public get message() {
+            this.using.unshift(this.weavingMessage);
             try {
-                this.message = weaving.weave.apply(null, using);
+                var result = weaving.weave.apply(null, this.using);
+                this.using.shift();
+                return result;
             } catch (error) {
                 throw error;
             }
-            (_e as any).captureStackTrace(this, this._where === undefined ? this.constructor : this._where);
-            this.stack = this.stack.replace(/^[^\n]*(?=\n)/, this.name + ": " + this.message);
+        }
+
+        private using: any[];
+
+        constructor(...using: any[]);
+        constructor(where: Function, ...using: any[]) {
+            if (!this.name) this.name = this.constructor.name;
+
+            if (typeof where == "function") this._where = where;
+            else using.unshift(where);
+
+            this.using = using;
+            var result = {};
+            (this as any)["prototype"] = new NativeError;
+            var e: any = {};
+            (NativeError as any).captureStackTrace(e, this._where === undefined ? this.constructor : this._where);
+            this._stack = e.stack;
         }
     }
 }
 
 class FormatError extends weaving.Error {
-    name = 'FormatError';
-    message = 'There was an error in your syntax, in the given string "{0}"';
+    weavingMessage = 'There was an error in your syntax, in the given string "{0}"';
 }
 class ArgumentError extends weaving.Error {
-    name = 'ArgumentError';
-    message = 'There was an error using the argument identified by "{0}"';
+    weavingMessage = 'There was an error using the argument identified by "{0}"';
 }
 class UnsupportedError extends weaving.Error {
-    name = 'UnsupportedError';
-    message = 'Sorry, you used an currently unsupported feature: "{0}"';
+    weavingMessage = 'Sorry, you used an currently unsupported feature: "{0}"';
 }
 
 
@@ -248,7 +260,7 @@ class weaver {
                         checkingLength = true;
                         break;
                     } else {
-                        if (this.strict) throw new FormatError(str);
+                        if (this.strict) throw new FormatError(weaver.prototype.weave, str);
                     }
                 }
                 if (cont) continue;
