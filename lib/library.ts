@@ -30,7 +30,7 @@ export interface Support extends Segment {
 }
 
 export module Library {
-    export function add (generator: (api: Object) => Support) {
+    export function add (generator: (api: typeof Matchables) => Support) {
         var support = generator(Matchables);
         Library.segments[support.name] = support;
     }

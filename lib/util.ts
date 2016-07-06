@@ -13,7 +13,7 @@ module StringUtils {
     export function tailsMatch(str: string, startsWith: string, endsWith: string) {
         return str.startsWith(startsWith) && str.endsWith(endsWith);
     }
-    export function tabbify(str: string, tabs: number) {
+    export function tabbify(str: string, tabs = 1) {
         return str.replace(/(^|\r?\n)(?!\s*\r?\n)/g, "$1" + "\t".repeat(tabs));
     }
 }

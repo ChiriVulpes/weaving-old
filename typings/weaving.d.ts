@@ -34,7 +34,7 @@ declare module weaving {
 	    name: string;
 	}
 	export module library {
-	    function add(generator: (api: Object) => Support): void;
+	    function add(generator: (api: typeof Matchables) => Support): void;
 	    function remove(name: string): void;
 	    var segments: {
 	        [key: string]: Segment;
@@ -45,11 +45,17 @@ declare module weaving {
     export function weaveIgnore(weaving: string, ...using: any[]): string;
     export abstract class Error {
         name: string;
-        message: string;
-        protected _stack: string;
-        protected _where: any;
+        protected weavingMessage: string;
+        private _stack: string;
+        private _where: Function;
+
         stack: string;
+        message: string;
+
+        private using: any[];
+
         constructor(...using: any[]);
+        constructor(where: Function, ...using: any[])
     }
 }
 export = weaving;
