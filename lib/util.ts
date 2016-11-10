@@ -19,9 +19,9 @@ module StringUtils {
 }
 
 Function.prototype.applyTo = function (name: string, target: Function) {
-    var theFunction = this;
+    let toApply = this;
     target.prototype[name] = function (...args: any[]) {
-        return theFunction.call(null, this, ...args);
+        return toApply.call(null, this, ...args);
     }
 }
 

@@ -33,8 +33,9 @@ declare module weaving {
 	export interface Support extends Segment {
 	    name: string;
 	}
+	export type Generator = (api: typeof Matchables) => Support;
 	export module library {
-	    function add(generator: (api: typeof Matchables) => Support): void;
+	    function add(generator: Generator): void;
 	    function remove(name: string): void;
 	    var segments: {
 	        [key: string]: Segment;

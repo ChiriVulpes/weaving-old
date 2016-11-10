@@ -4,8 +4,8 @@ export enum Matchables {
     KEYS = 0, CONTENT = 1, RAWCONTENT = 2
 }
 export module Matchables {
-    export var OPTIONAL = (...args: any[]) => ({ optional: args });
-    export var REGEX = (match: string) => ({ regex: match });
+    export let OPTIONAL = (...args: any[]) => ({ optional: args });
+    export let REGEX = (match: string) => ({ regex: match });
     export module Matched {
         export interface KEYS {
             keys: string[];
@@ -15,7 +15,7 @@ export module Matchables {
     }
 }
 
-var KEYS = Matchables.KEYS, 
+let KEYS = Matchables.KEYS, 
     CONTENT = Matchables.CONTENT, 
     RAWCONTENT = Matchables.RAWCONTENT, 
     OPTIONAL = Matchables.OPTIONAL, 
@@ -30,14 +30,15 @@ export interface Support extends Segment {
 }
 
 export module Library {
-    export function add (generator: (api: typeof Matchables) => Support) {
-        var support = generator(Matchables);
+    export type Generator = (api: typeof Matchables) => Support;
+    export function add (generator: Generator) {
+        let support = generator(Matchables);
         Library.segments[support.name] = support;
     }
     export function remove (name: string) {
         delete Library.segments[name];
     }
-    export var segments: { [key: string]: Segment } = {
+    export let segments: { [key: string]: Segment } = {
         tabbification: {
             match: [ REGEX(">+"), CONTENT ],
             return: (arrows: string[], content: string) => util.tabbify(content, arrows[0].length)
@@ -63,16 +64,16 @@ export module Library {
                 OPTIONAL( KEYS ), "*", RAWCONTENT, OPTIONAL( ":", RAWCONTENT )
             ],
             return: function (keys: Matchables.Matched.KEYS, _a: string, separator: string, replacement: string) {
-                var result: string[] = [], loopable = !keys ? this.args : keys.value;
-                var add = (function (i: any) {
+                let result: string[] = [], loopable = !keys ? this.args : keys.value;
+                let add = (function (i: any) {
                     this.keys.push(i);
                     this.vals.push(loopable[i]);
                     result.push(this.compile(replacement ? replacement[1] : "{&}"));
                     this.keys.pop();
                     this.vals.pop();
                 }).bind(this);
-                if (loopable.constructor.name == "Array") for (var i = 0; i < loopable.length; i++) add(i);
-                else for (var j in loopable) add(j);
+                if (loopable.constructor.name == "Array") for (let i = 0; i < loopable.length; i++) add(i);
+                else for (let j in loopable) add(j);
                 return this.compile(result.join(separator));
             }
         }

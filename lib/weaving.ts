@@ -3,10 +3,10 @@
 import * as Lib from "./library";
 import util = require("./util");
 
-var NativeError = Error;
+let NativeError = Error;
 module weaving {
     export function trimError(errorOrStack: Error | string) {
-        var stack = errorOrStack instanceof Error ? errorOrStack.stack : errorOrStack;
+        let stack = errorOrStack instanceof Error ? errorOrStack.stack : errorOrStack;
         return stack.replace(/^[^\n]*\r?\n/, "");
     }
     export function weave(weaving: string, ...using: any[]) {
@@ -16,9 +16,9 @@ module weaving {
         return new weaver(weaving, true).weave(...using);
     }
 
-    export var StringUtils = util;
-    export var library = Lib.Library;
-    export var Matchables = Lib.Matchables;
+    export let StringUtils = util;
+    export let library = Lib.Library;
+    export let Matchables = Lib.Matchables;
     export type Segment = Lib.Segment;
     export type Support = Lib.Support;
 
@@ -34,7 +34,7 @@ module weaving {
         public get message() {
             this.using.unshift(this.weavingMessage);
             try {
-                var result = weaving.weave.apply(null, this.using);
+                let result = weaving.weave.apply(null, this.using);
                 this.using.shift();
                 return result;
             } catch (error) {
@@ -52,9 +52,9 @@ module weaving {
             else using.unshift(where);
 
             this.using = using;
-            var result = {};
+            let result = {};
             (this as any)["prototype"] = new NativeError;
-            var e: any = {};
+            let e: any = {};
             (NativeError as any).captureStackTrace(e, this._where === undefined ? this.constructor : this._where);
             this._stack = e.stack;
         }
@@ -72,8 +72,8 @@ class UnsupportedError extends weaving.Error {
 }
 
 
-var nextOccurence = function (regex: RegExp, str: string, offset: number) {
-    var occurence = regex.exec(str.slice(offset));
+let nextOccurence = function (regex: RegExp, str: string, offset: number) {
+    let occurence = regex.exec(str.slice(offset));
     return occurence && "index" in occurence ? occurence.index + occurence[0].length - 1 + offset : -1;
 };
 
@@ -112,14 +112,14 @@ class weaver {
         return this.result;
     }
     extract () {
-        var str = this.str
+        let str = this.str
             .replace(/(~*)\[/g, "$1~~[")
             .replace(/(~*)\]/g, "$1~~]")
             .replace(/~\{/g, ".~[")
             .replace(/~\}/g, ".~]");
-        var args = Array.prototype.slice.apply(arguments, [1]);
-        var segments: string[] = [];
-        var didSomething: boolean;
+        let args = Array.prototype.slice.apply(arguments, [1]);
+        let segments: string[] = [];
+        let didSomething: boolean;
         do {
             didSomething = false;
             str = str.replace(/(^|[^~])({[^{}]*})/g, function(match: string, backmatch: string, capture: string) {
@@ -132,21 +132,21 @@ class weaver {
         this.segments = segments;
     }
     compile (str: string): string {
-        var result: any;
+        let result: any;
         this.indent++;
-        var error = new Error;
+        let error = new Error;
         if (util.tailsMatch(str, "{", "}")) {
 
-            var matched = this.findMatch(str.slice(1, -1));
+            let matched = this.findMatch(str.slice(1, -1));
             if (!matched) throw new Error("Couldn't match the input string '" + str.slice(1, -1) + "'");
 
             result = matched.segment.return.apply(this, matched.matched);
 
             this.indent--;
         } else {
-            var _this = this;
+            let _this = this;
             result = str.replace(/\[!(\d+)\]/g, function (match, index) {
-                var r = _this.compile(_this.segments[parseInt(index)]);
+                let r = _this.compile(_this.segments[parseInt(index)]);
                 return r;
             });
             this.indent--;
@@ -155,10 +155,10 @@ class weaver {
         //throw error;
     }
     findMatch (str: string): { segment: Lib.Segment, matched: boolean } {
-        var matchable = false, str = str, segment = "", matched: any;
+        let matchable = false, segment = "", matched: any;
         this.indent++;
         for (segment in weaving.library.segments) {
-            var matchers = weaving.library.segments[segment].match;
+            let matchers = weaving.library.segments[segment].match;
             matched = this.match(str, Array.isArray(matchers) ? matchers : [matchers]);
             if (matched) break;
         }
@@ -166,9 +166,9 @@ class weaver {
         return matched ? { segment: weaving.library.segments[segment], matched: matched } : undefined;
     }
     match (str: string, matchers: any[], sub = false): { length: number, matched: any[] } | any[] {
-        var matched: any[] = [], offset = 0;
-        for (var i = 0; i < matchers.length; i++) {
-            var match: any;
+        let matched: any[] = [], offset = 0;
+        for (let i = 0; i < matchers.length; i++) {
+            let match: any;
             switch (typeof matchers[i]) {
                 case "string": {
                     if (str.substr(offset, matchers[i].length) == matchers[i]) {
@@ -188,7 +188,7 @@ class weaver {
                         break;
                     }
                     if (matchers[i] == RAWCONTENT || matchers[i] == CONTENT) {
-                        var next = matchers.length == i + 1 ? "" : matchers[i + 1],
+                        let next = matchers.length == i + 1 ? "" : matchers[i + 1],
                             str2 = str.slice(offset),
                             nextOffset: any = 0,
                             optional = false;
@@ -240,15 +240,16 @@ class weaver {
     }
     getKeys (str: string): { keys: string[], offset: number } {
         if (!/[\.&!~a-zA-Z0-9_-]/.test(str[0])) return;
-        var keys: string[] = [], key = "", checkingLength = false;
-        for (var i = 0; i < str.length && !/[?*:}]/.test(str[i]); i++) {
+        let keys: string[] = [], key = "", checkingLength = false;
+        let i: number;
+        for (i = 0; i < str.length && !/[?*:}]/.test(str[i]); i++) {
             if (str[i] == "~") {
                 if (i++ > str.length) return;
                 key += this.escapeChar(str[i]);
                 continue;
             }
             if (str[i] == ".") {
-                var cont = false;
+                let cont = false;
                 if (key.length > 0) {
                     keys.push(key);
                     key = "";
@@ -275,9 +276,9 @@ class weaver {
         return char;
     }
     getValue (keys: (string | Object)[]): any {
-        var val: any = keys[0] == "&" ? this.vals : keys[0] == "!" ? this.keys : this.args;
+        let val: any = keys[0] == "&" ? this.vals : keys[0] == "!" ? this.keys : this.args;
         if (typeof keys[0] == "string") {
-            var key = keys[0] as string;
+            let key = keys[0] as string;
             if (/[&!]/.test(key[0])) {
                 if (key.length == 1) {
                     key += "-1";
@@ -286,14 +287,14 @@ class weaver {
                 keys[1] = key.slice(1);
                 if (!key.match(/^0|-?[1-9]\d*$/)) return undefined;
             } else {
-                var number = key.match(/^0|[1-9]\d*$/);
+                let number = key.match(/^0|[1-9]\d*$/);
                 if (!number || number[0].length != key.length) {
                     keys.unshift('0');
                 }
             }
             if (key.match(/[&!]/)) keys.shift();
         }
-        for (var i = 0; i < keys.length; i++) {
+        for (let i = 0; i < keys.length; i++) {
             if (typeof keys[i] == "object" || !(typeof val == "object" && (keys[i] as string) in val)) {
                 if (typeof keys[i] == "object" && (keys[i] as any)["checkingLength"]) {
                     if (Array.isArray(val) || typeof val == "string") val = val.length;
@@ -315,6 +316,6 @@ class weaver {
 }
 
 
-var KEYS = 0, CONTENT = 1, RAWCONTENT = 2;
+let KEYS = 0, CONTENT = 1, RAWCONTENT = 2;
 
 export = weaving;
