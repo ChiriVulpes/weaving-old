@@ -1,3 +1,4 @@
 .vscode
 develop.bat
 out
+npm-debug.log
