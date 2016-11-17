@@ -49,10 +49,13 @@ export module Library {
         },
         conditional: {
             match: [
-                KEYS, "?", RAWCONTENT, OPTIONAL( ":", RAWCONTENT )
+                KEYS, REGEX("!?\\?"), RAWCONTENT, OPTIONAL( ":", RAWCONTENT )
             ],
-            return: function (keys: Matchables.Matched.KEYS, _qm: string, ifTrue: string, ifFalse: string) {
-                return keys.value ?(
+            return: function (keys: Matchables.Matched.KEYS, conditionalTypeMatch: RegExpMatchArray, ifTrue: string, ifFalse: string) {
+                let pass = keys.value;
+                let conditionalType = conditionalTypeMatch[0];
+                if (conditionalType == "!?") pass = !pass;
+                return pass ?(
                     this.compile(ifTrue)
                 ):(
                     ifFalse ? this.compile(ifFalse[1]) : ""

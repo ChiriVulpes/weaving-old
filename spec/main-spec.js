@@ -45,6 +45,20 @@ describe("weaving", function () {
             expect(colon.weave(true)).toEqual(": <- a colon");
             expect(colon.weave()).toEqual("");
         });
+        describe("(inverse)", function () {
+            var example2 = "Hello, world!{0!? No name provided.}";
+            it("should not include the conditional if it's truthy", function () {
+                expect(example2.weave("Joe")).toEqual("Hello, world!");
+            });
+            it("should include the conditional if it's falsey", function () {
+                expect(example2.weave()).toEqual("Hello, world! No name provided.");
+            });
+            it("should allow escaping a colon in the conditional", function () {
+                var colon = "{0?~: <- a colon}";
+                expect(colon.weave(true)).toEqual(": <- a colon");
+                expect(colon.weave()).toEqual("");
+            });
+        });
     });
     describe("with multiple arguments and a conditional", function () {
         var example = "Hello, {1}!{0? My name is {0}.}";
@@ -64,9 +78,29 @@ describe("weaving", function () {
             expect(example.weave()).toEqual("I have no name.");
         });
         it("should allow escaping the colon", function () {
-            var colon = "{0?~: <- a colon:no colon!}";
-            expect(colon.weave(true)).toEqual(": <- a colon");
-            expect(colon.weave()).toEqual("no colon!");
+            var test1 = "{0?~: <- a colon:no colon!}";
+            expect(test1.weave(true)).toEqual(": <- a colon");
+            expect(test1.weave()).toEqual("no colon!");
+            var test2 = "{0?no colon!:~: <- a colon}";
+            expect(test2.weave(true)).toEqual("no colon!");
+            expect(test2.weave()).toEqual(": <- a colon");
+        });
+        describe("(inverse)", function () {
+            var example2 = "{0?My name is {0}:I have no name}.";
+            it("should include the conditional if it's truthy", function () {
+                expect(example2.weave("Joe")).toEqual("My name is Joe.");
+            });
+            it("should include the 'else' side of the conditional if it's falsey", function () {
+                expect(example2.weave()).toEqual("I have no name.");
+            });
+            it("should allow escaping the colon", function () {
+                var test1 = "{0!?~: <- a colon:no colon!}";
+                expect(test1.weave(true)).toEqual("no colon!");
+                expect(test1.weave()).toEqual(": <- a colon");
+                var test2 = "{0!?no colon!:~: <- a colon}";
+                expect(test2.weave(true)).toEqual(": <- a colon");
+                expect(test2.weave()).toEqual("no colon!");
+            });
         });
     });
     describe("with subkeys and object arguments", function () {

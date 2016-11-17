@@ -242,7 +242,7 @@ class weaver {
         if (!/[\.&!~a-zA-Z0-9_-]/.test(str[0])) return;
         let keys: string[] = [], key = "", checkingLength = false;
         let i: number;
-        for (i = 0; i < str.length && !/[?*:}]/.test(str[i]); i++) {
+        for (i = 0; i < str.length && !/[?*:}]/.test(str[i]) && (i == 0 || str[i] != "!"); i++) {
             if (str[i] == "~") {
                 if (i++ > str.length) return;
                 key += this.escapeChar(str[i]);
