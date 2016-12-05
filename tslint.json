@@ -1,0 +1,13 @@
+{
+	"rules": {
+
+		"no-var-keyword": true,
+		"no-duplicate-variable": true,
+		"no-switch-case-fall-through": true,
+
+		"semicolon": ["always"],
+		"no-trailing-whitespace": true,
+		//"completed-docs": [true, "classes", "methods", "properties"],
+		"whitespace": [true, "check-branch", "check-operator", "check-type", "check-separator", "check-module", "check-decl"]
+	}
+}

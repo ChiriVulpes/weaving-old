@@ -22,7 +22,7 @@ Function.prototype.applyTo = function (name: string, target: Function) {
     let toApply = this;
     target.prototype[name] = function (...args: any[]) {
         return toApply.call(null, this, ...args);
-    }
-}
+    };
+};
 
 export = StringUtils;

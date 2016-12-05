@@ -1,26 +1,65 @@
 /// <reference path="types.d.ts" />
 
-import * as Lib from "./library";
-import util = require("./util");
+import {
+    Library, API, Strand,
+    Matchables, Matchable,
+    Chain, Regex, Optional, Any,
+    Matched,
+    MatchedKeys, MatchedValue, MatchedContent, MatchedRawContent,
+    MatchedChain, MatchedRegex, MatchedAnyOf, FutureMatch
+} from "./library";
+import { Core } from "./core";
+require("./util");
 
 let NativeError = Error;
+
+let strands: Iterable<Strand> & { [key: number]: Strand[] } = {
+    [Symbol.iterator]: function* () {
+        for (let strandImportance in strands) {
+            for (let strand of strands[strandImportance]) {
+                yield strand;
+            }
+        }
+    }
+};
+let valueTypes: Iterable<Strand> & { [key: number]: Strand[] } = {
+    [Symbol.iterator]: function* () {
+        for (let strandImportance in valueTypes) {
+            for (let valueType of valueTypes[strandImportance]) {
+                yield valueType;
+            }
+        }
+    }
+};
+let libs: Library[] = [];
+
 module weaving {
     export function trimError(errorOrStack: Error | string) {
         let stack = errorOrStack instanceof Error ? errorOrStack.stack : errorOrStack;
         return stack.replace(/^[^\n]*\r?\n/, "");
     }
     export function weave(weaving: string, ...using: any[]) {
-        return new weaver(weaving).weave(...using);
+        return new Weaver(weaving).startWeave(...using);
     }
     export function weaveIgnore(weaving: string, ...using: any[]) {
-        return new weaver(weaving, true).weave(...using);
+        return new Weaver(weaving, true).startWeave(...using);
     }
 
-    export let StringUtils = util;
-    export let library = Lib.Library;
-    export let Matchables = Lib.Matchables;
-    export type Segment = Lib.Segment;
-    export type Support = Lib.Support;
+    export function addStrands (...libraries: Library[]) {
+        libs.push(...libraries);
+        for (let lib of libraries) {
+            for (let strandImportance in lib.strands) {
+                if (!Array.isArray(strands[strandImportance])) strands[strandImportance] = [];
+                strands[strandImportance].push(...lib.strands[strandImportance]);
+            }
+            if (lib.valueTypes) {
+                for (let valueTypeImportance in lib.valueTypes) {
+                    if (!Array.isArray(valueTypes[valueTypeImportance])) valueTypes[valueTypeImportance] = [];
+                    valueTypes[valueTypeImportance].push(...lib.valueTypes[valueTypeImportance]);
+                }
+            }
+        }
+    }
 
     export abstract class Error {
         name: string;
@@ -28,7 +67,7 @@ module weaving {
         private _stack: string;
         private _where: Function;
 
-        public get stack() { 
+        public get stack() {
             return this._stack.replace(/^[^\n]*(?=\n)/, this.name + ": " + this.message);
         }
         public get message() {
@@ -61,8 +100,13 @@ module weaving {
     }
 }
 
+weaving.addStrands(Core);
+
 class FormatError extends weaving.Error {
     weavingMessage = 'There was an error in your syntax, in the given string "{0}"';
+}
+class UnexpectedEndError extends weaving.Error {
+    weavingMessage = 'Unexpected end of weaving string "{0}"';
 }
 class ArgumentError extends weaving.Error {
     weavingMessage = 'There was an error using the argument identified by "{0}"';
@@ -77,245 +121,243 @@ let nextOccurence = function (regex: RegExp, str: string, offset: number) {
     return occurence && "index" in occurence ? occurence.index + occurence[0].length - 1 + offset : -1;
 };
 
-class weaver {
+function MatchedIsContent (match: Matched): match is MatchedContent | MatchedRawContent {
+    return typeof match == "object" && "nextMatch" in <any>match;
+}
 
-    cursor = -1;
+class Weaver {
+    cursor: number;
+    output: string;
     args: any[];
-    keys: string[];
-    vals: any[];
-    segments: any[];
-    result: string;
-    indent: number;
+
+    data: { [key: string]: any } = {};
+    api: API;
 
     constructor (public str: string, private strict = false) {
-        this.cursor = -1;
+        let _this = this;
+        this.api = {
+            data: {
+                set: <T>(name: string, value: T) => this.data[name] = value,
+                get: <T>(name: string) => this.data[name] as T,
+                remove: <T>(name: string) => {
+                    let val = this.data[name] as T;
+                    delete this.data[name];
+                    return val;
+                }
+            },
+            get args () { return _this.args; }
+        };
+    }
+
+    startWeave (...args: any[]) {
+        for (let lib of libs) {
+            if (lib.data) {
+                for (let dataKey in lib.data) {
+                    this.api.data.set(dataKey, lib.data[dataKey]);
+                }
+            }
+            if (lib.onWeave) lib.onWeave(this.api);
+        }
+        return this.weave(...args);
     }
 
     weave (...args: any[]) {
-        this.keys = [];
-        this.vals = [];
-        this.segments = [];
-        this.result = "";
+        //console.log("\n\nstarting string: '" + this.str + "'");
         this.args = args;
-        this.indent = -1;
-        try {
-            this.extract();
-            this.result = this.compile(this.str)
-                .replace(/\.~\[/g, "~{")
-                .replace(/\.~\]/g, "~}")
-                .replace(/(~{2,})([\[\]])/g, function (match: string, escapes: string, escaped: string) {
-                    return escapes.slice(2) + escaped;
-                }).replace(/~(.)/g, "$1");
-        } catch (error) {
-            throw error;
-        }
-        return this.result;
-    }
-    extract () {
-        let str = this.str
-            .replace(/(~*)\[/g, "$1~~[")
-            .replace(/(~*)\]/g, "$1~~]")
-            .replace(/~\{/g, ".~[")
-            .replace(/~\}/g, ".~]");
-        let args = Array.prototype.slice.apply(arguments, [1]);
-        let segments: string[] = [];
-        let didSomething: boolean;
-        do {
-            didSomething = false;
-            str = str.replace(/(^|[^~])({[^{}]*})/g, function(match: string, backmatch: string, capture: string) {
-                didSomething = true;
-                segments.push(capture);
-                return backmatch + "[!" + (segments.length - 1) + "]";
-            });
-        } while (didSomething);
-        this.str = str;
-        this.segments = segments;
-    }
-    compile (str: string): string {
-        let result: any;
-        this.indent++;
-        let error = new Error;
-        if (util.tailsMatch(str, "{", "}")) {
-
-            let matched = this.findMatch(str.slice(1, -1));
-            if (!matched) throw new Error("Couldn't match the input string '" + str.slice(1, -1) + "'");
-
-            result = matched.segment.return.apply(this, matched.matched);
-
-            this.indent--;
-        } else {
-            let _this = this;
-            result = str.replace(/\[!(\d+)\]/g, function (match, index) {
-                let r = _this.compile(_this.segments[parseInt(index)]);
-                return r;
-            });
-            this.indent--;
-        }
-        return result;
-        //throw error;
-    }
-    findMatch (str: string): { segment: Lib.Segment, matched: boolean } {
-        let matchable = false, segment = "", matched: any;
-        this.indent++;
-        for (segment in weaving.library.segments) {
-            let matchers = weaving.library.segments[segment].match;
-            matched = this.match(str, Array.isArray(matchers) ? matchers : [matchers]);
-            if (matched) break;
-        }
-        this.indent--;
-        return matched ? { segment: weaving.library.segments[segment], matched: matched } : undefined;
-    }
-    match (str: string, matchers: any[], sub = false): { length: number, matched: any[] } | any[] {
-        let matched: any[] = [], offset = 0;
-        for (let i = 0; i < matchers.length; i++) {
-            let match: any;
-            switch (typeof matchers[i]) {
-                case "string": {
-                    if (str.substr(offset, matchers[i].length) == matchers[i]) {
-                        match = matchers[i];
-                        offset += matchers[i].length;
-                    } else return;
-                    break;
-                }
-                case "number": {
-                    if (matchers[i] == KEYS) {
-                        match = {};
-                        match.keys = this.getKeys(str.slice(offset));
-                        if (!match.keys) return;
-                        offset += match.keys.offset;
-                        match.keys = match.keys.keys;
-                        match.value = match.keys ? this.getValue(match.keys) : undefined;
-                        break;
-                    }
-                    if (matchers[i] == RAWCONTENT || matchers[i] == CONTENT) {
-                        let next = matchers.length == i + 1 ? "" : matchers[i + 1],
-                            str2 = str.slice(offset),
-                            nextOffset: any = 0,
-                            optional = false;
-
-                        if (typeof next == "object")
-                            if ("optional" in next) next = next.optional, optional = true;
-
-                        if (Array.isArray(next)) next = next[0];
-
-                        if (typeof next == "string") {
-                            nextOffset = RegExp("((?:^|[^~])(?:~~)*)" + next).exec(str2);
-                            nextOffset = nextOffset ? nextOffset.index + nextOffset[1].length : -1;
-
-                            if ((nextOffset == -1 && optional) || matchers.length == i + 1) nextOffset = str2.length;
-                            match = str2.slice(0, nextOffset);
-                            if (matchers[i] == CONTENT) match = this.compile(match);
-                        } else throw new Error;
-                        offset += nextOffset;
-                        break;
-                    }
-                    throw new Error("unknown segment type");
-                }
-                case "object": {
-                    if (Array.isArray(matchers[i])) {
-                        match = this.match(str.slice(offset), matchers[i], true);
-                        offset += match.length;
-                        match = match.matched;
-                    } else {
-                        if ("optional" in matchers[i]) {
-                            match = this.match(str.slice(offset), matchers[i].optional, true);
-                            if (match) {
-                                if (typeof match == "object") offset += match.length;
-                                if (Array.isArray(match.matched) && match.matched.length == 1) match.matched = match.matched[0];
-                                match = [match.matched];
-                            }
-                        } else if ("regex" in matchers[i]) {
-                            match = str.slice(offset).match("^" + matchers[i].regex);
-                            if (!match) return;
-                            offset += match[0].length;
-                            match = [match];
-                        } else throw new Error("invalid match type");
-                    }
-                }
+        this.output = "";
+        for (this.cursor = 0; this.cursor < this.str.length; this.cursor++) {
+            let char = this.str[this.cursor];
+            if (char == "~") {
+                this.cursor++;
+                if (this.cursor >= this.str.length) this.output += "~";
+                else this.output += this.escapeChar(this.str[this.cursor]);
+            } else if (char == "{") {
+                this.output += this.findMatch();
+            } else {
+                this.output += char;
             }
-            matched.push.apply(matched, Array.isArray(match) ? match : [match]);
         }
-        if (!sub && offset < str.length) return;
-        return sub ? { length: offset, matched: matched } : matched;
+        //console.log("finished with string: '" + this.output + "'");
+        return this.output;
     }
-    getKeys (str: string): { keys: string[], offset: number } {
-        if (!/[\.&!~a-zA-Z0-9_-]/.test(str[0])) return;
-        let keys: string[] = [], key = "", checkingLength = false;
-        let i: number;
-        for (i = 0; i < str.length && !/[?*:}]/.test(str[i]) && (i == 0 || str[i] != "!"); i++) {
-            if (str[i] == "~") {
-                if (i++ > str.length) return;
-                key += this.escapeChar(str[i]);
+
+    findMatch () {
+        let cursor = this.cursor + 1;
+        for (let strand of strands) {
+            this.cursor = cursor;
+            let matchers = strand.match;
+            //console.log("\ntrying matcher: " + strand.name);
+            let matched = this.matchChain(matchers instanceof Chain ? matchers : new Chain(matchers));
+            if (!matched || this.str[this.cursor] != "}") {
+                //console.log("failed. made it to: '", this.str.slice(this.cursor), "'");
                 continue;
             }
-            if (str[i] == ".") {
-                let cont = false;
+            //console.log("matched!");
+            return strand.return.apply(this.api, matched.matches);
+        }
+        throw new FormatError(this.str);
+    }
+    matchChain (chain: Chain | Optional) {
+        let result: Matched = { matches: [] as Matched[] };
+        for (let i = 0; i < chain.matchers.length; i++) {
+            let matcher = chain.matchers[i];
+            let match = this.match(matcher, chain.matchers.slice(i + 1));
+            if (!match) return chain instanceof Optional ? { matches: [] as Matched[] } : undefined;
+            result.matches.push(match);
+            if (MatchedIsContent(match)) {
+                if (match.nextMatch) {
+                    this.cursor = match.nextMatch.index;
+                    result.matches.push(match.nextMatch.match);
+                }
+            }
+        }
+        return result;
+    }
+    match (matcher: Matchable, nextMatchers: Matchable[]): Matched {
+        let cursor = this.cursor;
+        if (typeof matcher == "string") {
+            if (this.str.startsWith(matcher, this.cursor)) {
+                this.cursor += matcher.length;
+                return { match: matcher };
+            }
+        } else if (typeof matcher == "number") {
+            if (matcher == Matchables.KEYS) {
+                let match = this.matchKeys(nextMatchers);
+                if (!match) this.cursor = cursor;
+                return match;
+            } else if (matcher == Matchables.VALUE) {
+                let match = this.matchValueType(nextMatchers);
+                if (!match) this.cursor = cursor;
+                return match;
+            } else if (matcher == Matchables.CONTENT || matcher == Matchables.RAWCONTENT) {
+                let rawContent = this.matchContent(nextMatchers);
+                return matcher == Matchables.RAWCONTENT ? rawContent : { content: rawContent.content(), nextMatch: rawContent.nextMatch };
+            }
+        } else if (typeof matcher == "object") {
+            if (matcher instanceof Chain || matcher instanceof Optional) {
+                let match = this.matchChain(matcher);
+                if (!match) this.cursor = cursor;
+                return match;
+            } else if (matcher instanceof Any) {
+                for (let option of matcher.options) {
+                    let match = this.match(option, nextMatchers);
+                    if (match) return { match };
+                }
+                this.cursor = cursor;
+                return;
+            } else if (matcher instanceof Regex) {
+                let match = this.str.slice(this.cursor).match("^" + matcher.regex);
+                if (!match) {
+                    this.cursor = cursor;
+                    return;
+                }
+                this.cursor += match[0].length;
+                return { match };
+            }
+        }
+    }
+    matchKeys (nextMatchers: Matchable[]): MatchedKeys {
+        let startCursor = this.cursor;
+        let keyCharRegex = /[~a-zA-Z0-9_-]/;
+        if (!keyCharRegex.test(this.str[this.cursor])) return;
+        let keys: string[] = [],
+            key = "";
+        for (this.cursor; this.cursor < this.str.length; this.cursor++) {
+            if (this.str[this.cursor] == "~") {
+                if (this.cursor++ > this.str.length) throw new UnexpectedEndError(this.str);
+                key += this.escapeChar(this.str[this.cursor]);
+                continue;
+            }
+            if (this.str[this.cursor] == ".") {
                 if (key.length > 0) {
                     keys.push(key);
                     key = "";
-                    cont = true;
+                    if (keyCharRegex.test(this.str[this.cursor + 1])) continue;
                 }
-                if (str[i + 1] == ".") {
-                    if (/\?|$/.test(str.slice(i + 2))) {
-                        i += 2;
-                        checkingLength = true;
-                        break;
-                    } else {
-                        if (this.strict) throw new FormatError(weaver.prototype.weave, str);
-                    }
-                }
-                if (cont) continue;
+                break;
             }
-            key += str[i];
+            if (!keyCharRegex.test(this.str[this.cursor])) break;
+            key += this.str[this.cursor];
         }
         if (key.length > 0) keys.push(key);
-        if (checkingLength) (keys as any).push({"checkingLength": true});
-        return { keys: keys.length > 0 ? keys : undefined, offset: i};
+        if (this.cursor == this.str.length) throw new UnexpectedEndError(this.str);
+        return { keys, value: this.getValue.bind(this, keys) };
+    }
+    matchValueType (nextMatchers: Matchable[]): MatchedValue {
+        let startCursor = this.cursor;
+        for (let valueType of valueTypes) {
+            this.cursor = startCursor;
+            let matchers = valueType.match instanceof Chain ? valueType.match : new Chain(valueType.match);
+            let match = this.matchChain(matchers);
+            if (!match) continue;
+            else return { value: valueType.return.bind(this.api, ...match.matches) };
+        }
+        this.cursor = startCursor;
+        return this.matchKeys(nextMatchers);
     }
     escapeChar (char: string) {
         return char;
     }
-    getValue (keys: (string | Object)[]): any {
-        let val: any = keys[0] == "&" ? this.vals : keys[0] == "!" ? this.keys : this.args;
-        if (typeof keys[0] == "string") {
-            let key = keys[0] as string;
-            if (/[&!]/.test(key[0])) {
-                if (key.length == 1) {
-                    key += "-1";
-                }
-                keys.unshift(key[0]);
-                keys[1] = key.slice(1);
-                if (!key.match(/^0|-?[1-9]\d*$/)) return undefined;
+    matchContent (nextMatchers: Matchable[]): MatchedRawContent {
+        let startCursor = this.cursor;
+        let content = "",
+            nextMatch: FutureMatch,
+            layers = 0;
+        for (this.cursor; this.cursor < this.str.length; this.cursor++) {
+            if (this.str[this.cursor] == "~") {
+                if (this.cursor++ > this.str.length) throw new UnexpectedEndError(this.str.slice(startCursor));
+                content += this.escapeChar(this.str[this.cursor]);
+                continue;
+            } else if (this.str[this.cursor] == "{") {
+                layers++;
+            } else if (this.str[this.cursor] == "}" && layers > 0) {
+                layers--;
             } else {
-                let number = key.match(/^0|[1-9]\d*$/);
-                if (!number || number[0].length != key.length) {
-                    keys.unshift('0');
-                }
+                if (this.str[this.cursor] == "}" && layers == 0) break;
+                nextMatch = this.matchNext(nextMatchers);
+                if (nextMatch || (this.str[this.cursor] == "}" && layers == 0)) break;
+                content += this.str[this.cursor];
             }
-            if (key.match(/[&!]/)) keys.shift();
         }
+        if (this.cursor == this.str.length) throw new UnexpectedEndError(this.str.slice(startCursor));
+        let str = this.str.slice(startCursor, this.cursor);
+        return { content: () => {
+            let strSave = this.str, cursorSave = this.cursor;
+            this.str = str, this.cursor = 0;
+            let result = this.weave(...this.args);
+            this.str = strSave, this.cursor = cursorSave;
+            return result;
+        }, nextMatch };
+    }
+    getValue (keys: string[], err = true) {
+        let result: any = this.args;
         for (let i = 0; i < keys.length; i++) {
-            if (typeof keys[i] == "object" || !(typeof val == "object" && (keys[i] as string) in val)) {
-                if (typeof keys[i] == "object" && (keys[i] as any)["checkingLength"]) {
-                    if (Array.isArray(val) || typeof val == "string") val = val.length;
-                    else if (typeof val == "object") val = Object.keys(val).length;
-                    else throw new Error("invalid value to check length of");
-                    break;
-                } else if (typeof val == "object") {
-                    
-                    if ((keys[i] as string).match(/-[1-9]\d*/)) keys[i] = val.length + Number(keys[i]); // if negative we're grabbing from backwards
-                    else return undefined;
-                    if (Math.sign((keys[i] as number)) == -1) return undefined; // if it's still negative we subtracted too much, so error
-                }
+            let key = keys[Math.floor(i)];
+            if (i == 0 && isNaN(key as any)) key = "0", i = -0.5;
+            if (!(key in result)) {
+                if (err) throw new ArgumentError(keys.join("."));
+                return;
             }
-            if (typeof val != "object") return undefined;
-            val = val[keys[i] as string];
+            result = result[key];
         }
-        return typeof val == "string" ? val.replace(/~/g, "~~").replace(/(~+)\[/g, "$1~~[") : val;
+        return result;
+    }
+    matchNext (nextMatchers: Matchable[]): FutureMatch {
+        let startCursor = this.cursor;
+        let result: FutureMatch = {} as FutureMatch;
+        for (let i = 0; i < nextMatchers.length; i++) {
+            let nextMatcher = nextMatchers[i];
+            result.match = this.match(nextMatcher, nextMatchers.slice(i));
+            if (nextMatcher instanceof Optional && (result.match as { matches: Matched[] }).matches.length == 0) {
+                result.match = undefined;
+                continue;
+            }
+            break;
+        }
+        result.index = this.cursor;
+        this.cursor = startCursor;
+        if (result.match) return result;
     }
 }
-
-
-let KEYS = 0, CONTENT = 1, RAWCONTENT = 2;
 
 export = weaving;
