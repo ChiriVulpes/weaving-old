@@ -246,7 +246,7 @@ class Weaver {
                 this.cursor = cursor;
                 return;
             } else if (matcher instanceof Regex) {
-                let match = this.str.slice(this.cursor).match("^" + matcher.regex);
+                let match = this.str.slice(this.cursor).match("^(?:" + matcher.regex + ")");
                 if (!match) {
                     this.cursor = cursor;
                     return;

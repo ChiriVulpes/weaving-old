@@ -14,6 +14,27 @@ const KEYS = Matchables.KEYS,
     CONTENT = Matchables.CONTENT,
     RAWCONTENT = Matchables.RAWCONTENT;
 
+function MatchedIsValue (match: any): match is MatchedValue {
+    return "value" in match;
+}
+
+function compareValues (operator: "==" | "!=" | "<=" | ">=" | "<" | ">" | "<<", val1: any, val2: any) {
+    switch (operator) {
+        case "==": return val1 === val2;
+        case "!=": return val1 !== val2;
+        case "<": return val1 < val2;
+        case ">": return val1 > val2;
+        case "<=": return val1 <= val2;
+        case ">=": return val1 >= val2;
+        case "<<": {
+            if (typeof val2 == "object") {
+                if (Array.isArray(val2)) return val2.indexOf(val1) >= 0;
+                else return ("" + val1) in val2;
+            } else if (typeof val2 == "string") return val2.indexOf("" + val1) >= 0;
+        }
+    }
+}
+
 export class CoreLibrary extends Library {
     data = {
         keys: [] as string[],
@@ -21,6 +42,27 @@ export class CoreLibrary extends Library {
     };
     valueTypes = {
         0: [
+            {
+                name: "key-or-val",
+                match: new Regex("(!|&)(\\d+)?"), // TODO add keys after this
+                return (this: API, match: MatchedRegex) {
+                    let type = match.match[1],
+                        entriesUpward = +match.match[2];
+                    if (!entriesUpward) entriesUpward = 0;
+                    let entries = this.data.get<any[]>(type == "!" ? "keys" : "vals");
+                    return entries[entries.length - entriesUpward - 1];
+                }
+            },
+            {
+                name: "string-or-number",
+                match: new Regex("(\"|'|`)((?:(?!~|\\1).|~.)*)\\1|~(\\d+(?:\\.\\d+)?)"),
+                return (match: MatchedRegex): any {
+                    if (match.match[3]) return +match.match[3];
+                    else return match.match[2];
+                }
+            }
+        ],
+        1: [
             {
                 name: "with-length",
                 match: new Chain( new Optional(KEYS), ".." ),
@@ -31,19 +73,6 @@ export class CoreLibrary extends Library {
                     else if (typeof val == "object") return Object.keys(val).length;
                 }
             },
-        ],
-        1: [
-            {
-                name: "key-or-val",
-                match: new Regex("(!|&)(\d+)?"),
-                return (this: API, match: MatchedRegex) {
-                    let type = match.match[1],
-                        entriesUpward = +match.match[2];
-                    if (!entriesUpward) entriesUpward = 0;
-                    let entries = this.data.get<any[]>(type == "!" ? "keys" : "vals");
-                    return entries[entries.length - entriesUpward - 1];
-                }
-            }
         ]
     };
     strands = {
@@ -68,11 +97,8 @@ export class CoreLibrary extends Library {
                 match: new Chain(
                     VALUE,
                     new Optional( // if we're comparing the value of the keys
-                        new Regex("(==|<=|>=|<|>|!=)"), // valid operators
-                        new Any( // things to compare against
-                            VALUE,
-                            new Regex("(\"|'|`)(?:(?!~|\\1).|~.)*\\1|\\d+(?:\\.\\d+)?")
-                        )
+                        new Regex("(==|!=|<=|>=|<<?|>)"), // valid operators
+                        VALUE
                     ),
                     new Regex("!?\\?"), // whether this is an inverse conditional
                     RAWCONTENT,
@@ -82,7 +108,7 @@ export class CoreLibrary extends Library {
                     keys: MatchedValue,
                     comparisonMatch: MatchedChain<{
                         0: MatchedRegex,
-                        1: MatchedAnyOf<MatchedValue | MatchedRegex>
+                        1: MatchedValue
                     }>,
                     conditionalType: MatchedRegex,
                     ifTrue: MatchedRawContent,
@@ -90,7 +116,13 @@ export class CoreLibrary extends Library {
                         1: MatchedRawContent
                     }>
                 ) {
-                    let pass = keys.value(false);
+                    let val = keys.value(false);
+                    let pass: boolean;
+                    if (comparisonMatch.matches.length > 0) {
+                        let against = comparisonMatch.matches[1].value(false);
+                        pass = compareValues(comparisonMatch.matches[0].match[0] as any, val, against);
+                    } else pass = !!val;
+
                     if (conditionalType.match[0] == "!?") pass = !pass;
                     return pass ? (
                         ifTrue.content()
