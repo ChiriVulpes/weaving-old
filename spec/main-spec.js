@@ -1,11 +1,6 @@
 
-
-
-let weaving = require("../../weaving");
-
-weaving.weave.applyTo("weave", String);
-
-// TODO tests for applyProtos
+let { weave } = require("../../weaving");
+weave.applyTo("weave", String);
 
 describe("weaving", () => {
 
@@ -130,10 +125,9 @@ describe("weaving", () => {
 
         });
 
-        
+
         describe("that compares", () => {
 
-            
             it("equality", () => {
                 let example = "{0=='Joe'?I knew your name was Joe!:Wait, is your name really {0}?}";
                 expect(example.weave("Joe")).toEqual("I knew your name was Joe!");
@@ -204,30 +198,34 @@ describe("weaving", () => {
         it("should access subkeys of arguments", () => {
             let example = "Hello, {name}! You've been playing for {timePlayed} hours.";
             let tests = [
-                {name: "ExampleUser", timePlayed: 234.3},
-                {name: "BobSteveJimJoeGuy", timePlayed: 15}
+                { name: "ExampleUser", timePlayed: 234.3 },
+                { name: "BobSteveJimJoeGuy", timePlayed: 15 }
             ];
             for (let i = 0; i < tests.length; i++) {
                 expect(example.weave(tests[i]))
-                .toEqual("Hello, " + tests[i].name + "! You've been playing for " + tests[i].timePlayed + " hours.");
+                    .toEqual("Hello, " + tests[i].name + "! You've been playing for " + tests[i].timePlayed + " hours.");
             }
         });
 
         it("should be able to chain subkeys", () => {
             let example = "Hello, {name}! You've been playing for {game.1.timePlayed} hours.";
             let tests = [
-                {name: "ExampleUser2", game: [
-                    {timePlayed: 12},
-                    {timePlayed: 234.3}
-                ]},
-                {name: "BobSteveJimJoeGuy", game: [
-                    {timePlayed: 150},
-                    {timePlayed: 15}
-                ]}
+                {
+                    name: "ExampleUser2", game: [
+                        { timePlayed: 12 },
+                        { timePlayed: 234.3 }
+                    ]
+                },
+                {
+                    name: "BobSteveJimJoeGuy", game: [
+                        { timePlayed: 150 },
+                        { timePlayed: 15 }
+                    ]
+                }
             ];
             for (let i = 0; i < tests.length; i++) {
                 expect(example.weave(tests[i]))
-                .toEqual("Hello, " + tests[i].name + "! You've been playing for " + tests[i].game[1].timePlayed + " hours.");
+                    .toEqual("Hello, " + tests[i].name + "! You've been playing for " + tests[i].game[1].timePlayed + " hours.");
             }
         });
 
@@ -249,8 +247,8 @@ describe("weaving", () => {
 
         it("should allow looping through subkeys rather than the actual argument list", () => {
             let tests = [
-                {type: "users", list: ["Joe", "Bob", "Stevie"]},
-                {type: "fruits", list: ["pineapple", "melon", "kiwi"]}
+                { type: "users", list: ["Joe", "Bob", "Stevie"] },
+                { type: "fruits", list: ["pineapple", "melon", "kiwi"] }
             ];
             for (let i = 0; i < tests.length; i++) {
                 expect("List of {0}: {1*, }".weave(tests[i].type, tests[i].list)).toEqual("List of " + tests[i].type + ": " + tests[i].list.join(", "));
@@ -282,7 +280,7 @@ describe("weaving", () => {
 
         it("should also work for objects", () => {
             expect(example.weave({})).toEqual("the list is empty...");
-            expect(example.weave({item1: ""})).toEqual("the list isn't empty!");
+            expect(example.weave({ item1: "" })).toEqual("the list isn't empty!");
         });
 
         it("should also work for the arguments list", () => {
@@ -296,7 +294,7 @@ describe("weaving", () => {
             expect(example.weave("")).toEqual("the string is empty...");
             expect(example.weave("hello, world!")).toEqual("there's a string!");
         });
-        
+
         describe("should allow using the length in the resulting string and", () => {
 
             let example2 = "{0..}";
@@ -308,7 +306,7 @@ describe("weaving", () => {
 
             it("should also work for objects", () => {
                 expect(example2.weave({})).toEqual("0");
-                expect(example2.weave({item1: 1, item2: 2, item3: 3})).toEqual("3");
+                expect(example2.weave({ item1: 1, item2: 2, item3: 3 })).toEqual("3");
             });
 
             it("should also work for the arguments list", () => {
@@ -328,7 +326,7 @@ describe("weaving", () => {
     });
 
 
-    describe ("with tabbification strands", () => it("should tabbify successfully", () => {
+    describe("with tabbification strands", () => it("should tabbify successfully", () => {
         let escape = function (str) {
             return str.replace(/\r/g, "\\r").replace(/\n/g, "\\n").replace(/\t/g, "\\t");
         };
