@@ -125,6 +125,14 @@ describe("weaving", () => {
 
         });
 
+        it("should not catch inner else clauses", () => {
+            let example = "{0?First is true.{1?: Second is false.}}";
+            expect(example.weave(true, true)).toEqual("First is true.");
+            expect(example.weave(true, false)).toEqual("First is true. Second is false.");
+            expect(example.weave(false, true)).toEqual("");
+            expect(example.weave(false, false)).toEqual("");
+        });
+
 
         describe("that compares", () => {
 

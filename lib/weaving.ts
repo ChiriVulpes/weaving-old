@@ -329,7 +329,7 @@ class Weaver {
             } else {
                 if (this.str[this.cursor] == "}" && layers == 0) break;
                 nextMatch = this.matchNext(nextMatchers);
-                if (nextMatch || (this.str[this.cursor] == "}" && layers == 0)) break;
+                if (nextMatch && layers == 0) break;
                 content += this.str[this.cursor];
             }
         }
