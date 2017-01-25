@@ -321,6 +321,16 @@ describe("weaving", () => {
                 expect(example.weave("hello")).toEqual("5");
             });
 
+            it("should work on looped items", () => {
+                let example = "{0* :{!}{&..?='{&}'}}";
+                let attributes = {
+                    class: "test hello",
+                    id: "best-element",
+                    href: "/a-cool-page"
+                };
+                expect(example.weave(attributes)).toEqual("class='test hello' id='best-element' href='/a-cool-page'");
+            })
+
         });
 
     });

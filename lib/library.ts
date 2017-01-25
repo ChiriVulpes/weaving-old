@@ -4,18 +4,18 @@ export enum Matchables {
 export module Matchables {
     export class Optional {
         matchers: Matchable[];
-        constructor (...args: Matchable[]) { this.matchers = args; }
+        constructor(...args: Matchable[]) { this.matchers = args; }
     }
     export class Any {
         options: Matchable[];
-        constructor (...args: Matchable[]) { this.options = args; }
+        constructor(...args: Matchable[]) { this.options = args; }
     }
     export class Regex {
-        constructor (public regex: string) {}
+        constructor(public regex: string) { }
     }
     export class Chain {
         matchers: Matchable[];
-        constructor (...args: Matchable[]) { this.matchers = args; }
+        constructor(...args: Matchable[]) { this.matchers = args; }
     }
 }
 export let Optional = Matchables.Optional,
@@ -69,14 +69,15 @@ export interface FutureMatch {
 export interface Strand {
     name: string;
     match: Matchable;
+    blacklist?: boolean;
     return: Function;
 }
 
 export interface API {
     data: {
-        get<T> (name: string): T;
-        set<T> (name: string, value: T): T;
-        remove<T> (name: string): T;
+        get<T>(name: string): T;
+        set<T>(name: string, value: T): T;
+        remove<T>(name: string): T;
     };
     readonly args: any[];
 }
@@ -84,6 +85,6 @@ export interface API {
 export abstract class Library {
     data?: { [key: string]: any };
     valueTypes?: { [key: number]: Strand[] };
-    onWeave? (api: API): void;
+    onWeave?(api: API): void;
     strands?: { [key: number]: Strand[] };
 }

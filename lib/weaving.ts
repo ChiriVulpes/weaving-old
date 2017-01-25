@@ -45,7 +45,7 @@ module weaving {
         return new Weaver(weaving, true).startWeave(...using);
     }
 
-    export function addStrands (...libraries: Library[]) {
+    export function addStrands(...libraries: Library[]) {
         libs.push(...libraries);
         for (let lib of libraries) {
             for (let strandImportance in lib.strands) {
@@ -121,19 +121,19 @@ let nextOccurence = function (regex: RegExp, str: string, offset: number) {
     return occurence && "index" in occurence ? occurence.index + occurence[0].length - 1 + offset : -1;
 };
 
-function MatchedIsContent (match: Matched): match is MatchedContent | MatchedRawContent {
+function MatchedIsContent(match: Matched): match is MatchedContent | MatchedRawContent {
     return typeof match == "object" && "nextMatch" in <any>match;
 }
 
 class Weaver {
     cursor: number;
-    output: string;
     args: any[];
 
     data: { [key: string]: any } = {};
+    blacklist: { [key: string]: true };
     api: API;
 
-    constructor (public str: string, private strict = false) {
+    constructor(public str: string, private strict = false) {
         let _this = this;
         this.api = {
             data: {
@@ -145,11 +145,11 @@ class Weaver {
                     return val;
                 }
             },
-            get args () { return _this.args; }
+            get args() { return _this.args; }
         };
     }
 
-    startWeave (...args: any[]) {
+    startWeave(...args: any[]) {
         for (let lib of libs) {
             if (lib.data) {
                 for (let dataKey in lib.data) {
@@ -161,27 +161,34 @@ class Weaver {
         return this.weave(...args);
     }
 
-    weave (...args: any[]) {
+    weave(...args: any[]) {
         //console.log("\n\nstarting string: '" + this.str + "'");
         this.args = args;
-        this.output = "";
+
+        let oldBlacklist = this.blacklist;
+        this.blacklist = {};
+
+        let output = "";
         for (this.cursor = 0; this.cursor < this.str.length; this.cursor++) {
             let char = this.str[this.cursor];
             if (char == "~") {
                 this.cursor++;
-                if (this.cursor >= this.str.length) this.output += "~";
-                else this.output += this.escapeChar(this.str[this.cursor]);
+                if (this.cursor >= this.str.length) output += "~";
+                else output += this.escapeChar(this.str[this.cursor]);
             } else if (char == "{") {
-                this.output += this.findMatch();
+                output += this.findMatch();
             } else {
-                this.output += char;
+                output += char;
             }
         }
-        //console.log("finished with string: '" + this.output + "'");
-        return this.output;
+
+        this.blacklist = oldBlacklist;
+
+        //console.log("finished with string: '" + output + "'");
+        return output;
     }
 
-    findMatch () {
+    findMatch() {
         let cursor = this.cursor + 1;
         for (let strand of strands) {
             this.cursor = cursor;
@@ -197,7 +204,7 @@ class Weaver {
         }
         throw new FormatError(this.str);
     }
-    matchChain (chain: Chain | Optional) {
+    matchChain(chain: Chain | Optional) {
         let result: Matched = { matches: [] as Matched[] };
         for (let i = 0; i < chain.matchers.length; i++) {
             let matcher = chain.matchers[i];
@@ -213,7 +220,7 @@ class Weaver {
         }
         return result;
     }
-    match (matcher: Matchable, nextMatchers: Matchable[]): Matched {
+    match(matcher: Matchable, nextMatchers: Matchable[]): Matched {
         let cursor = this.cursor;
         if (typeof matcher == "string") {
             if (this.str.startsWith(matcher, this.cursor)) {
@@ -256,7 +263,7 @@ class Weaver {
             }
         }
     }
-    matchKeys (nextMatchers: Matchable[]): MatchedKeys {
+    matchKeys(nextMatchers: Matchable[]): MatchedKeys {
         let startCursor = this.cursor;
         let keyCharRegex = /[~a-zA-Z0-9_-]/;
         if (!keyCharRegex.test(this.str[this.cursor])) return;
@@ -283,22 +290,29 @@ class Weaver {
         if (this.cursor == this.str.length) throw new UnexpectedEndError(this.str);
         return { keys, value: this.getValue.bind(this, keys) };
     }
-    matchValueType (nextMatchers: Matchable[]): MatchedValue {
+    matchValueType(nextMatchers: Matchable[]): MatchedValue {
         let startCursor = this.cursor;
         for (let valueType of valueTypes) {
+            if (this.blacklist[valueType.name]) continue;
+            if (valueType.blacklist) this.blacklist[valueType.name] = true;
+
             this.cursor = startCursor;
+
             let matchers = valueType.match instanceof Chain ? valueType.match : new Chain(valueType.match);
             let match = this.matchChain(matchers);
+
+            delete this.blacklist[valueType.name];
+
             if (!match) continue;
             else return { value: valueType.return.bind(this.api, ...match.matches) };
         }
         this.cursor = startCursor;
         return this.matchKeys(nextMatchers);
     }
-    escapeChar (char: string) {
+    escapeChar(char: string) {
         return char;
     }
-    matchContent (nextMatchers: Matchable[]): MatchedRawContent {
+    matchContent(nextMatchers: Matchable[]): MatchedRawContent {
         let startCursor = this.cursor;
         let content = "",
             nextMatch: FutureMatch,
@@ -321,15 +335,17 @@ class Weaver {
         }
         if (this.cursor == this.str.length) throw new UnexpectedEndError(this.str.slice(startCursor));
         let str = this.str.slice(startCursor, this.cursor);
-        return { content: () => {
-            let strSave = this.str, cursorSave = this.cursor;
-            this.str = str, this.cursor = 0;
-            let result = this.weave(...this.args);
-            this.str = strSave, this.cursor = cursorSave;
-            return result;
-        }, nextMatch };
+        return {
+            content: () => {
+                let strSave = this.str, cursorSave = this.cursor;
+                this.str = str, this.cursor = 0;
+                let result = this.weave(...this.args);
+                this.str = strSave, this.cursor = cursorSave;
+                return result;
+            }, nextMatch
+        };
     }
-    getValue (keys: string[], err = true) {
+    getValue(keys: string[], err = true) {
         let result: any = this.args;
         for (let i = 0; i < keys.length; i++) {
             let key = keys[Math.floor(i)];
@@ -342,7 +358,7 @@ class Weaver {
         }
         return result;
     }
-    matchNext (nextMatchers: Matchable[]): FutureMatch {
+    matchNext(nextMatchers: Matchable[]): FutureMatch {
         let startCursor = this.cursor;
         let result: FutureMatch = {} as FutureMatch;
         for (let i = 0; i < nextMatchers.length; i++) {

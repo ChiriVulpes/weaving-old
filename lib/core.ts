@@ -14,11 +14,11 @@ const KEYS = Matchables.KEYS,
     CONTENT = Matchables.CONTENT,
     RAWCONTENT = Matchables.RAWCONTENT;
 
-function MatchedIsValue (match: any): match is MatchedValue {
+function MatchedIsValue(match: any): match is MatchedValue {
     return "value" in match;
 }
 
-function compareValues (operator: "==" | "!=" | "<=" | ">=" | "<" | ">" | "<<", val1: any, val2: any) {
+function compareValues(operator: "==" | "!=" | "<=" | ">=" | "<" | ">" | "<<", val1: any, val2: any) {
     switch (operator) {
         case "==": return val1 === val2;
         case "!=": return val1 !== val2;
@@ -43,9 +43,22 @@ export class CoreLibrary extends Library {
     valueTypes = {
         0: [
             {
+                name: "with-length",
+                match: new Chain(new Optional(VALUE), ".."),
+                blacklist: true,
+                return(this: API, ifValue: MatchedChain<{ 0: MatchedValue }>) {
+                    let val = ifValue.matches.length > 0 ? ifValue.matches[0].value(false) : this.args;
+                    if (!val) return 0;
+                    else if (typeof val == "string" || Array.isArray(val)) return val.length;
+                    else if (typeof val == "object") return Object.keys(val).length;
+                }
+            },
+        ],
+        1: [
+            {
                 name: "key-or-val",
                 match: new Regex("(!|&)(\\d+)?"), // TODO add keys after this
-                return (this: API, match: MatchedRegex) {
+                return(this: API, match: MatchedRegex) {
                     let type = match.match[1],
                         entriesUpward = +match.match[2];
                     if (!entriesUpward) entriesUpward = 0;
@@ -56,30 +69,18 @@ export class CoreLibrary extends Library {
             {
                 name: "string-or-number",
                 match: new Regex("(\"|'|`)((?:(?!~|\\1).|~.)*)\\1|~(\\d+(?:\\.\\d+)?)"),
-                return (match: MatchedRegex): any {
+                return(match: MatchedRegex): any {
                     if (match.match[3]) return +match.match[3];
                     else return match.match[2];
                 }
             }
         ],
-        1: [
-            {
-                name: "with-length",
-                match: new Chain( new Optional(KEYS), ".." ),
-                return (this: API, ifKeys: MatchedChain<{ 0: MatchedKeys }>) {
-                    let val = ifKeys.matches.length > 0 ? ifKeys.matches[0].value(false) : this.args;
-                    if (!val) return 0;
-                    else if (typeof val == "string" || Array.isArray(val)) return val.length;
-                    else if (typeof val == "object") return Object.keys(val).length;
-                }
-            },
-        ]
     };
     strands = {
         0: [
             {
                 name: "tabbification",
-                match: new Chain( new Regex(">+"), CONTENT ),
+                match: new Chain(new Regex(">+"), CONTENT),
                 return: (arrows: MatchedRegex, content: MatchedContent) =>
                     util.tabbify(content.content, arrows.match[0].length)
             }
@@ -102,9 +103,9 @@ export class CoreLibrary extends Library {
                     ),
                     new Regex("!?\\?"), // whether this is an inverse conditional
                     RAWCONTENT,
-                    new Optional( ":", RAWCONTENT ) // if it includes an else half of the conditional
+                    new Optional(":", RAWCONTENT) // if it includes an else half of the conditional
                 ),
-                return (
+                return(
                     keys: MatchedValue,
                     comparisonMatch: MatchedChain<{
                         0: MatchedRegex,
@@ -127,18 +128,18 @@ export class CoreLibrary extends Library {
                     return pass ? (
                         ifTrue.content()
                     ) : (
-                        ifFalse.matches.length > 0 ? ifFalse.matches[1].content() : ""
-                    );
+                            ifFalse.matches.length > 0 ? ifFalse.matches[1].content() : ""
+                        );
                 }
             },
             {
                 name: "loop",
                 match: new Chain(
-                    new Optional( VALUE ),
+                    new Optional(VALUE),
                     "*", RAWCONTENT,
-                    new Optional( ":", RAWCONTENT )
+                    new Optional(":", RAWCONTENT)
                 ),
-                return (this: API,
+                return(this: API,
                     ifKeys: MatchedChain<{
                         0: MatchedValue
                     }>,
