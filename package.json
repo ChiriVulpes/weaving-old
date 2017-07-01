@@ -1,14 +1,19 @@
 {
     "name": "weaving",
-    "version": "0.8.1",
-    "description": "Exposes a sexy string-formatting/building api.",
+    "version": "0.9.0",
+    "description": "The sexiest string templating you'll ever find.",
     "license": "MIT",
     "author": {
         "name": "Mackenzie McClane"
     },
     "main": "out/weaving.js",
-    "dependencies": {},
-    "typings": "typings/weaving.d.ts",
+    "dependencies": {
+        "weaving-api": "1.0.0"
+    },
+    "devDependencies": {
+        "@types/node": "7.0.22"
+    },
+    "typings": "out/weaving.d.ts",
 
     "repository": {
         "type": "git",

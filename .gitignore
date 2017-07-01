@@ -1,4 +1,2 @@
-.vscode
-develop.bat
-out
-npm-debug.log
+/node_modules
+/out

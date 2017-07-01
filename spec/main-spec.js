@@ -1,6 +1,9 @@
 
-let { weave } = require("../../weaving");
-weave.applyTo("weave", String);
+let { Weaver } = require("../../weaving");
+const weaver = new Weaver();
+String.prototype.weave = function (...using) {
+    return weaver.weave(this, ...using);
+}
 
 describe("weaving", () => {
 
@@ -364,5 +367,16 @@ describe("weaving", () => {
         expect(escape(example.weave())).toEqual(escape("test\n\ttest\n\ttest\n\t\t\ttest\n\t\t\ttest\n\t\t\ttest\n\ttest\ntest"));
 
     }));
+
+    /*
+    TODO library tests
+    - library with a single strand
+    - library with multiple strands
+    - library with strands and value types
+    - library with strands and value types that uses data storage
+    for each library:
+    - registering the library
+    - weave using each strand in the library
+    */
 
 });
