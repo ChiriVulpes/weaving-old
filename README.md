@@ -2,6 +2,7 @@
 [![npm](https://img.shields.io/npm/v/weaving.svg?style=flat-square)](https://www.npmjs.com/package/weaving)
 [![GitHub issues](https://img.shields.io/github/issues/Yuudaari/weaving.svg?style=flat-square)](https://github.com/Yuudaari/weaving)
 [![Travis](https://img.shields.io/travis/Yuudaari/weaving.svg?style=flat-square)](https://travis-ci.org/Yuudaari/weaving)
+
 A node module that exposes a sexy string-formatting api.
 
 Works like the `string.format` in most languages. Here's a simple example:
@@ -19,7 +20,7 @@ npm install weaving
 
 ## More Documentation
 
-##### Basic Usage
+### Basic Usage
 
 ```js
 const { Weaver } = require("weaving"), weaver = new Weaver();
@@ -33,7 +34,7 @@ weaver.apply();
 
 Whether or not you want to use the String.prototype function is up to you. The rest of the documentation uses the prototype version.
 
-##### Conditionals
+### Conditionals
 It gets more complicated (and fancy!):
 
 ```js
@@ -54,7 +55,7 @@ example.weave("Joe"); // -> "My name is Joe."
 example.weave(null); // -> "I have no name."
 ```
 
-##### Subkeys
+### Subkeys
 You can also access subkeys of args. Here's an example:
 
 ```js
@@ -71,7 +72,7 @@ example.weave({name: "ExampleUser2", game: [{},{timePlayed: 234.3}]}); // -> "He
 
 As you've probably realised, it works the same for the argument list. By putting keys rather than integer indexes, it automatically assumes you mean 0.\<key\> To give you an example, `"{name}"` is interpreted as `"{0.name}"`
 
-##### Looping
+### Looping
 To simply loop over the arguments:
 
 ```js
@@ -99,7 +100,7 @@ You don't have to loop over the argument list, however. You can also loop over a
 "List of {0}: {1*, }".weave("users", ["Joe", "Bob", "Stevie"]); // -> "List of users: Joe, Bob, Stevie"
 ```
 
-##### Length
+### Length
 
 But what if you just want to get or check the length of an object? You can do that too, with the `..` operator!
 
@@ -130,7 +131,7 @@ var example = "there are {..} arguments";
 example.weave(1, 2, 3); // -> "there are 3 arguments"
 ```
 
-##### Tabbificiation
+### Tabbificiation
 
 For exporting code-based structures having the ability to tabbify content is important. Weaving supports this with the `>` segment.
 Here's an example:
@@ -144,6 +145,12 @@ example.weave();
 //     So is this!
 // </div>
 ```
+
+### Libraries
+
+Weaving is built on a strong engine. Internally, the text between every curly brace in a weaving string is called a "Strand", and the support for all of the strands you've just seen are provided using Weaving's API. 
+
+That's right, Weaving, out of the box, supports extensions as extreme as everything it can do by default. Regretfully, it is complex to write a Weaving extension, and currently there is no documentation on it, but a section on it in this documentation is on my todo list.
 
 ## MIT License
 
