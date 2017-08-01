@@ -1,26 +1,36 @@
 {
     "name": "weaving",
-    "version": "0.9.0",
-    "description": "The sexiest string templating you'll ever find.",
-    "license": "MIT",
-    "author": {
-        "name": "Mackenzie McClane"
+    "version": "1.0.0",
+    
+    "dependencies": {
+        "weaving-api": "1.0.1"
     },
     "main": "out/weaving.js",
-    "dependencies": {
-        "weaving-api": "1.0.0"
-    },
-    "devDependencies": {
-        "@types/node": "7.0.22"
-    },
-    "typings": "out/weaving.d.ts",
-
+    
+    "description": "The sexiest string templating you'll ever find.",
+    "keywords": [
+        "format", "string.format", "string", "strformat", "weaving", "weave", "arguments", "prototype"
+    ],
+    "license": "MIT",
     "repository": {
         "type": "git",
         "url": "https://github.com/Aarilight/weaving"
     },
-    "keywords": [
-        "format", "string.format", "string", "strformat", "weaving", "weave", "arguments", "prototype"
-    ],
-    "bugs": { "url" : "https://github.com/Aarilight/weaving/issues" }
+    
+    "devDependencies": {
+		"gulp": "3.9.1",
+		"gulp-plumber": "1.1.0",
+		"run-sequence": "2.1.0",
+		"typescript": "2.4.2",
+		"gulp-typescript": "3.2.1",
+		"mocha": "3.4.2",
+		"gulp-mocha": "4.3.1",
+		"chai": "4.1.0",
+		"chai-as-promised": "7.1.1",
+		"@types/node": "8.0.17",
+		"@types/request-promise": "4.1.36",
+		"@types/mocha": "2.2.41",
+		"@types/chai": "4.0.1",
+		"@types/chai-as-promised": "0.0.31"
+    }
 }

@@ -7,6 +7,12 @@ import {
 	MatchedChain, MatchedRegex, MatchedAnyOf, FutureMatch,
 } from "weaving-api";
 
+declare global {
+	interface String {
+		weave (...using: any[]): string;
+	}
+}
+
 
 function nextOccurence (regex: RegExp, str: string, offset: number) {
 	const occurence = regex.exec(str.slice(offset));
@@ -49,6 +55,13 @@ export default class Weaver {
 	private libs: Library[] = [];
 
 	strict = false;
+
+	apply () {
+		const weaver = this;
+		String.prototype.weave = function (...using: any[]) {
+			return weaver.weave(this, ...using);
+		};
+	}
 
 	private FormatError = class FormatError extends Error {
 		message = "There was an error in your syntax, in the given string \"{0}\"";
