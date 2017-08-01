@@ -18,7 +18,7 @@ Works like the `string.format` in most languages. Here's a simple example:
 npm install weaving
 ```
 
-## More Documentation
+## Documentation
 
 ### Basic Usage
 
