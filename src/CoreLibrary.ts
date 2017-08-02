@@ -1,22 +1,16 @@
 import {
 	Library, API,
-	Matchables, Matchable,
-	Chain, Regex, Optional, Any,
-	Matched,
-	MatchedKeys, MatchedValue, MatchedContent, MatchedRawContent,
-	MatchedChain, MatchedRegex, MatchedAnyOf,
+	Matchables,
+	Chain, Regex, Optional,
+	MatchedValue, MatchedContent, MatchedRawContent,
+	MatchedChain, MatchedRegex,
 } from "weaving-api";
 
-import KEYS = Matchables.KEYS;
 import VALUE = Matchables.VALUE;
 import CONTENT = Matchables.CONTENT;
 import RAWCONTENT = Matchables.RAWCONTENT;
 
 import * as Util from "./Util";
-
-function MatchedIsValue (match: any): match is MatchedValue {
-	return "value" in match;
-}
 
 function compareValues (operator: "==" | "!=" | "<=" | ">=" | "<" | ">" | "<<", val1: any, val2: any) {
 	switch (operator) {

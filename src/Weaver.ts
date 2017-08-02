@@ -4,19 +4,13 @@ import {
 	Chain, Regex, Optional, Any,
 	Matched,
 	MatchedKeys, MatchedValue, MatchedContent, MatchedRawContent,
-	MatchedChain, MatchedRegex, MatchedAnyOf, FutureMatch,
+	FutureMatch,
 } from "weaving-api";
 
 declare global {
 	interface String {
 		weave (...using: any[]): string;
 	}
-}
-
-
-function nextOccurence (regex: RegExp, str: string, offset: number) {
-	const occurence = regex.exec(str.slice(offset));
-	return occurence && "index" in occurence ? occurence.index + occurence[0].length - 1 + offset : -1;
 }
 
 function MatchedIsContent (match: Matched): match is MatchedContent | MatchedRawContent {
@@ -59,7 +53,7 @@ export default class Weaver {
 	apply () {
 		const weaver = this;
 		String.prototype.weave = function (...using: any[]) {
-			return weaver.weave(this, ...using);
+			return weaver.weave(this as string, ...using);
 		};
 	}
 
@@ -84,6 +78,7 @@ export default class Weaver {
 			this.message = this.message.replace("{0}", str);
 		}
 	};
+	/*
 	private UnsupportedError = class UnsupportedError extends Error {
 		message = "Sorry, you used an currently unsupported feature: \"{0}\"";
 		constructor(str: string) {
@@ -91,6 +86,7 @@ export default class Weaver {
 			this.message = this.message.replace("{0}", str);
 		}
 	};
+	*/
 
 	constructor() {
 		const thisWeaver = this;
@@ -241,7 +237,6 @@ export default class Weaver {
 		}
 	}
 	private matchKeys (nextMatchers: Matchable[]): MatchedKeys {
-		const startCursor = this.cursor;
 		const keyCharRegex = /[~a-zA-Z0-9_-]/;
 		if (!keyCharRegex.test(this.str[this.cursor])) return;
 		const keys: string[] = [];

@@ -7,6 +7,23 @@
 			"type": "gulp",
 			"task": "watch",
 			"problemMatcher": []
+		},
+		{
+			"type": "gulp",
+			"task": "compile-test",
+			"problemMatcher": []
+		},
+		{
+			"type": "gulp",
+			"task": "ts",
+			"problemMatcher": [
+				"$gulp-tsc"
+			]
+		},
+		{
+			"type": "gulp",
+			"task": "mocha",
+			"problemMatcher": []
 		}
 	]
 }

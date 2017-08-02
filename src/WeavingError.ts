@@ -4,7 +4,6 @@ abstract class WeavingError {
 	name: string;
 	protected weavingMessage: string;
 	private _stack: string;
-	private _where: Function;
 	protected weaver: any;
 	protected proto = false;
 
@@ -41,7 +40,6 @@ abstract class WeavingError {
 		}
 
 		this.using = using;
-		const result = {};
 		(this as any)["prototype"] = new Error;
 		const e: any = {};
 		(Error as any).captureStackTrace(e, this.constructor);
