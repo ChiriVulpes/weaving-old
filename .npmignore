@@ -1,5 +1,10 @@
-lib
-spec
-tsconfig.json
+.vscode/
+src/
+out/tests/
+
 .gitattributes
-.vscode
+.gitignore
+.travis.yml
+gulpfile.js
+tsconfig.json
+tslint.json
